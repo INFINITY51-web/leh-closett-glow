@@ -10,6 +10,13 @@ async function userId() {
   return data.user.id;
 }
 
+export async function getCustomerAddresses() {
+  const id = await userId();
+  const { data, error } = await supabase!.from("addresses").select("*").eq("user_id", id).order("is_default", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Address[];
+}
+
 export async function getCustomerAccount() {
   const id = await userId();
   const [profile, addresses, favorites] = await Promise.all([

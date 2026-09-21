@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Check, MapPin, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SiteNavigation } from "../components/site-navigation";
-import { getCustomerAccount, saveAddress, type Address } from "../lib/customer-account";
+import { getCustomerAddresses, saveAddress, type Address } from "../lib/customer-account";
 
 export const Route = createFileRoute("/enderecos")({ component: AddressesPage });
 
@@ -19,7 +19,7 @@ function AddressesPage() {
 
   useEffect(() => {
     let active = true;
-    getCustomerAccount().then((account) => { if (active) setAddresses(account.addresses); }).catch(() => { void navigate({ to: "/login", replace: true }); }).finally(() => { if (active) setLoading(false); });
+    getCustomerAddresses().then((items) => { if (active) setAddresses(items); }).catch(() => { void navigate({ to: "/login", replace: true }); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [navigate]);
 
@@ -28,7 +28,7 @@ function AddressesPage() {
     event.preventDefault();
     if (!form.recipient_name?.trim() || !form.street?.trim() || !form.number?.trim() || !form.city?.trim() || !form.state?.trim() || !form.postal_code?.trim()) { setMessage("Preencha nome, rua, número, cidade, estado e CEP."); return; }
     setSaving(true); setMessage("");
-    try { await saveAddress({ ...form, label: form.label?.trim() || "Meu endereço" }); const account = await getCustomerAccount(); setAddresses(account.addresses); setForm(emptyForm); setMessage("Endereço salvo com sucesso."); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar o endereço."); } finally { setSaving(false); }
+    try { await saveAddress({ ...form, label: form.label?.trim() || "Meu endereço" }); const items = await getCustomerAddresses(); setAddresses(items); setForm(emptyForm); setMessage("Endereço salvo com sucesso."); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar o endereço."); } finally { setSaving(false); }
   }
   const field = (key: keyof AddressForm, label: string, extra = "") => <label className={`block text-sm font-medium ${extra}`}>{label}<input required={!["label", "phone", "complement"].includes(key)} value={String(form[key] ?? "")} onChange={(event) => update(key, event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" /></label>;
 
