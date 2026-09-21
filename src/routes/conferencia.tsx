@@ -7,7 +7,13 @@ export const Route = createFileRoute("/conferencia")({
     if (!supabase) throw redirect({ to: "/login" });
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
-      sessionStorage.setItem("leh-checkout-return", "/checkout");
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("leh-checkout-return", "/conferencia");
+        } catch {
+          /* sessão indisponível */
+        }
+      }
       throw redirect({ to: "/login" });
     }
   },
