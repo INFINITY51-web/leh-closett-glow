@@ -62,13 +62,13 @@ export async function fetchMappedPublishedProducts(): Promise<Product[]> {
       name: item.name,
       category: categories.find((category) => category.id === item.category_id)?.name ?? "Coleção",
       price: item.price,
-      salePrice: salePrice ?? undefined,
+      ...(salePrice != null ? { salePrice } : {}),
       available: variants.length === 0 || variants.some((variant) => variant.stock_quantity > 0),
       colors: [...new Set(variants.map((variant) => variant.color).filter(Boolean))] as string[],
       sizes: [...new Set(variants.map((variant) => variant.size).filter(Boolean))] as string[],
       description: item.description ?? "",
       images: images.length ? images : [""],
-      badge: item.featured ? "Destaque" : undefined,
+      ...(item.featured ? { badge: "Destaque" } : {}),
     };
   });
 }

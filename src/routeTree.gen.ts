@@ -15,9 +15,9 @@ import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as FavoritosRouteImport } from './routes/favoritos'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as PedidoConfirmadoRouteImport } from './routes/pedido-confirmado'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as CatalogoIndexRouteImport } from './routes/catalogo/index'
 import { Route as CatalogoIdRouteImport } from './routes/catalogo/$id'
 
@@ -51,6 +51,11 @@ const FavoritosRoute = FavoritosRouteImport.update({
   path: '/favoritos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PedidoConfirmadoRoute = PedidoConfirmadoRouteImport.update({
   id: '/pedido-confirmado',
   path: '/pedido-confirmado',
@@ -61,7 +66,6 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
-const LoginRoute = LoginRouteImport.update({ id: '/login', path: '/login', getParentRoute: () => rootRouteImport } as any)
 const CatalogoIndexRoute = CatalogoIndexRouteImport.update({
   id: '/catalogo/',
   path: '/catalogo/',
@@ -74,33 +78,32 @@ const CatalogoIdRoute = CatalogoIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/login': typeof LoginRoute
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/conta': typeof ContaRoute
   '/favoritos': typeof FavoritosRoute
+  '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin/login': typeof AdminLoginRoute
   '/catalogo/$id': typeof CatalogoIdRoute
   '/catalogo/': typeof CatalogoIndexRoute
 }
 export interface FileRoutesByTo {
-  '/login': typeof LoginRoute
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/conta': typeof ContaRoute
   '/favoritos': typeof FavoritosRoute
+  '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin/login': typeof AdminLoginRoute
   '/catalogo/$id': typeof CatalogoIdRoute
   '/catalogo': typeof CatalogoIndexRoute
 }
 export interface FileRoutesById {
-  '/login': typeof LoginRoute
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
@@ -108,6 +111,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/conta': typeof ContaRoute
   '/favoritos': typeof FavoritosRoute
+  '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin/login': typeof AdminLoginRoute
   '/catalogo/$id': typeof CatalogoIdRoute
@@ -122,6 +126,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/conta'
     | '/favoritos'
+    | '/login'
     | '/pedido-confirmado'
     | '/admin/login'
     | '/catalogo/$id'
@@ -134,6 +139,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/conta'
     | '/favoritos'
+    | '/login'
     | '/pedido-confirmado'
     | '/admin/login'
     | '/catalogo/$id'
@@ -146,6 +152,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/conta'
     | '/favoritos'
+    | '/login'
     | '/pedido-confirmado'
     | '/admin/login'
     | '/catalogo/$id'
@@ -153,13 +160,13 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  LoginRoute: typeof LoginRoute
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
   ContaRoute: typeof ContaRoute
   FavoritosRoute: typeof FavoritosRoute
+  LoginRoute: typeof LoginRoute
   PedidoConfirmadoRoute: typeof PedidoConfirmadoRoute
   CatalogoIdRoute: typeof CatalogoIdRoute
   CatalogoIndexRoute: typeof CatalogoIndexRoute
@@ -167,13 +174,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -214,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/favoritos'
       fullPath: '/favoritos'
       preLoaderRoute: typeof FavoritosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pedido-confirmado': {
@@ -258,13 +265,13 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  LoginRoute: LoginRoute,
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
   ContaRoute: ContaRoute,
   FavoritosRoute: FavoritosRoute,
+  LoginRoute: LoginRoute,
   PedidoConfirmadoRoute: PedidoConfirmadoRoute,
   CatalogoIdRoute: CatalogoIdRoute,
   CatalogoIndexRoute: CatalogoIndexRoute,

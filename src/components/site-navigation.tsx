@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Heart, LayoutGrid, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "../../cart-context";
-import { supabase } from "../lib/supabase"; from "../../cart-context";
+import { supabase } from "../lib/supabase";
 
 const navItems = [
   { label: "Novidades", to: "/catalogo" as const },
