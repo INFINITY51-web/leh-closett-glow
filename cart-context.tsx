@@ -38,11 +38,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     for (const item of items) {
       if (!item.variantId) continue;
       let quantity = item.quantity;
-      if (shouldMerge) {
-        const { data: existing, error: existingError } = await supabase.from("cart_items").select("quantity").eq("cart_id", cartId).eq("variant_id", item.variantId).maybeSingle();
-        if (existingError) throw existingError;
-        quantity += Number(existing?.quantity ?? 0);
-      }
+      const { data: existing, error: existingError } = await supabase.from("cart_items").select("quantity").eq("cart_id", cartId).eq("variant_id", item.variantId).maybeSingle();
+      if (existingError) throw existingError;
+      if (shouldMerge) quantity += Number(existing?.quantity ?? 0);
+      else if (existing) quantity = Number(existing.quantity);
       const { error } = await supabase.from("cart_items").upsert({ cart_id: cartId, product_id: item.product.id, variant_id: item.variantId, quantity, unit_price: item.product.salePrice ?? item.product.price }, { onConflict: "cart_id,variant_id" });
       if (error) throw error;
     }

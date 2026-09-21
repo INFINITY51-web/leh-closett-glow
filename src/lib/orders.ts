@@ -13,6 +13,7 @@ export async function saveOrder(order: Order) {
   const savedCartId = typeof window !== "undefined" ? sessionStorage.getItem("leh-supabase-cart-id") : null;
   const { data: cart } = await supabase.from("carts").select("id").eq("user_id", user.id).maybeSingle();
   const cartId = cart?.id ?? savedCartId;
+  if (savedCartId && cart?.id && savedCartId !== cart.id) throw new Error("O carrinho não pertence à sessão atual.");
   if (!cartId) throw new Error("Carrinho Supabase não encontrado.");
   const { count, error: itemsError } = await supabase.from("cart_items").select("id", { count: "exact", head: true }).eq("cart_id", cartId);
   if (itemsError) throw itemsError;
@@ -66,14 +67,18 @@ export async function syncMercadoPagoOrder(externalReference: string) {
 
 export async function getOrder(number: string) {
   if (!supabase) throw new Error("Supabase não configurado");
-  const { data, error } = await supabase.from("orders").select("*, order_items(*), shipments(*)").eq("order_number", number).single();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Faça login para consultar este pedido.");
+  const { data, error } = await supabase.from("orders").select("*, order_items(*), shipments(*)").eq("order_number", number).eq("user_id", auth.user.id).single();
   if (error) throw error;
   return data;
 }
 
 export async function getOrderById(id: string) {
   if (!supabase) throw new Error("Supabase não configurado");
-  const { data, error } = await supabase.from("orders").select("*, order_items(*), shipments(*)").eq("id", id).single();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Faça login para consultar este pedido.");
+  const { data, error } = await supabase.from("orders").select("*, order_items(*), shipments(*)").eq("id", id).eq("user_id", auth.user.id).single();
   if (error) throw error;
   return data;
 }

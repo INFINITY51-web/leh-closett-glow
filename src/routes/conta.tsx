@@ -77,6 +77,7 @@ function AccountPage() {
     if (!supabase) return;
     setSigningOut(true);
     await supabase.auth.signOut();
+    for (const key of ["leh-supabase-cart-id", "leh-created-order", "leh-checkout-review", "leh-checkout-address-id"]) sessionStorage.removeItem(key);
     await navigate({ to: "/login", replace: true });
   }
 
