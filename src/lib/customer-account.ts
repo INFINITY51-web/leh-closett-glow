@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 
 export type Profile = { id: string; full_name?: string | null; phone?: string | null; role?: string | null; is_active?: boolean | null };
-export type Address = { id: string; label?: string | null; recipient_name?: string | null; street?: string | null; number?: string | null; complement?: string | null; neighborhood?: string | null; city?: string | null; state?: string | null; postal_code?: string | null; is_default?: boolean | null };
+export type Address = { id: string; label?: string | null; recipient_name?: string | null; phone?: string | null; street?: string | null; number?: string | null; complement?: string | null; neighborhood?: string | null; city?: string | null; state?: string | null; postal_code?: string | null; is_default?: boolean | null };
 
 async function userId() {
   if (!supabase) throw new Error("Supabase não configurado");
