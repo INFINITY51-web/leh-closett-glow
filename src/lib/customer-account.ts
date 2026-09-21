@@ -4,7 +4,25 @@ export type Profile = { id: string; full_name?: string | null; cpf?: string | nu
 
 export function formatCpf(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
-  return digits.replace(/(\\d{3})(\\d)/, "$1.$2").replace(/(\\d{3})(\\d)/, "$1.$2").replace(/(\\d{3})(\\d{1,2})$/, "$1-$2");
+  return digits
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+export function formatPhone(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 10) {
+    return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d{1,4})$/, "$1-$2");
+  }
+  return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d{1,4})$/, "$1-$2");
+}
+
+export function isValidPhone(value: string) {
+  const phone = value.replace(/\D/g, "");
+  if (![10, 11].includes(phone.length) || /^(\d)\1+$/.test(phone)) return false;
+  if (/^([0-9])\1+$/.test(phone)) return false;
+  return !["0123456789", "1234567890", "9876543210"].includes(phone);
 }
 
 export function isValidCpf(value: string) {
