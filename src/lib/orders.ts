@@ -42,6 +42,8 @@ export async function saveOrder(order: Order) {
 
 export async function createMercadoPagoCheckout(order: { id: string; number: string; total: number }) {
   if (!supabase) throw new Error("Supabase não configurado");
+  const { data: session } = await supabase.auth.getSession();
+  if (!session.session) throw new Error("Sua sessão expirou. Entre novamente para pagar.");
   const { data, error } = await supabase.functions.invoke("mercadopago-create-checkout", {
     body: {
       order_id: order.id,
@@ -50,7 +52,14 @@ export async function createMercadoPagoCheckout(order: { id: string; number: str
       amount: order.total,
     },
   });
-  if (error) throw error;
+  if (error) {
+    const context = (error as { context?: Response }).context;
+    let detail = "";
+    if (context && typeof context.text === "function") {
+      try { detail = await context.clone().text(); } catch { detail = ""; }
+    }
+    throw new Error(detail ? `Pagamento indisponível: ${detail.slice(0, 200)}` : error.message);
+  }
   const checkoutUrl = data?.init_point ?? data?.sandbox_init_point ?? data?.checkout_url ?? data?.url;
   if (!checkoutUrl) throw new Error("O Mercado Pago não retornou a URL do checkout.");
   return checkoutUrl as string;
