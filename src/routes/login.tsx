@@ -36,16 +36,24 @@ function LoginPage() {
         const credentials = identifier.includes("@") ? { email: identifier.trim() } : { phone: identifier.trim() };
         const { error: authError } = await supabase.auth.signInWithPassword({ ...credentials, password });
         if (authError) throw authError;
-        await navigate({ to: "/conta" });
+        setLoading(false);
+        await navigate({ to: "/conta", replace: true });
+        return;
       } else {
         const { data, error: authError } = await supabase.auth.signUp({ email: identifier.trim(), password, options: { data: { full_name: name.trim() } } });
         if (authError) throw authError;
-        if (data.session) await navigate({ to: "/conta" });
-        else setSuccess("Conta criada. Confira seu e-mail para confirmar o acesso.");
+        if (data.session) {
+          setLoading(false);
+          await navigate({ to: "/conta", replace: true });
+          return;
+        }
+        setSuccess("Conta criada. Confira seu e-mail para confirmar o acesso.");
       }
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "Não foi possível concluir a autenticação.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function resetPassword() {
