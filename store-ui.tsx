@@ -72,7 +72,7 @@ export function CheckoutPage() {
   const selectedShippingCost = selectedQuote ? Number(selectedQuote.shipping_total ?? selectedQuote.price ?? selectedQuote.amount ?? 0) : shippingCost;
   const total = subtotal + selectedShippingCost;
   useEffect(() => { void getCustomerAddresses().then(setSavedAddresses).catch(() => undefined); }, []);
-  useEffect(() => { if (!selectedAddressId) return; const address = savedAddresses.find((item) => item.id === selectedAddressId); if (!address) return; const fields: Record<string, string> = { fullName: address.recipient_name ?? "", phone: address.phone ?? "", cep: address.postal_code ?? "", city: address.city ?? "", state: address.state ?? "", address: `${address.street ?? ""}, ${address.number ?? ""}${address.complement ? `, ${address.complement}` : ""}` }; Object.entries(fields).forEach(([name, value]) => { const field = document.querySelector<HTMLInputElement>(`[name="${name}"]`); if (field) { field.value = value; } }); }, [selectedAddressId, savedAddresses]);
+  useEffect(() => { if (!selectedAddressId) return; const address = savedAddresses.find((item) => item.id === selectedAddressId); if (!address) return; const fields: Record<string, string> = { fullName: address.recipient_name ?? "", phone: address.phone ?? "", cep: address.postal_code ?? "", city: address.city ?? "", state: address.state ?? "", address: `${address.street ?? ""}, ${address.number ?? ""}${address.complement ? `, ${address.complement}` : ""}` }; Object.entries(fields).forEach(([name, value]) => { const field = document.querySelector<HTMLInputElement>(`[name="${name}"]`); if (field && !field.value.trim()) { field.value = value; field.dispatchEvent(new Event("input", { bubbles: true })); } }); }, [selectedAddressId, savedAddresses]);
   useEffect(() => { if (!supabase) return; void (async () => { const { data } = await supabase.from("shipping_quotes").select("*"); if (data?.length) { setShippingQuotes(data); setShippingQuoteId(data[0].id); setShipping(data[0].id); } })().catch(() => undefined); }, []);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,7 +96,13 @@ export function CheckoutPage() {
       ["state", "Estado"],
       ["address", "Endereço completo"],
     ] as const;
-    const valueFor = (name: string) => String(formData.get(name) ?? "").trim() || String(savedAddressValues[name as keyof typeof savedAddressValues] ?? "").trim();
+    const valueFor = (name: string) => {
+      const formValue = String(formData.get(name) ?? "").trim();
+      const savedValue = String(savedAddressValues[name as keyof typeof savedAddressValues] ?? "").trim();
+      // O endereço salvo é a fonte de verdade quando selecionado. O FormData
+      // pode conter o valor antigo porque o preenchimento ocorre após o mount.
+      return savedValue || formValue;
+    };
     const missing = requiredFields.filter(([name]) => !valueFor(name)).map(([, label]) => label);
     setErrors(missing);
     if (!missing.length) {
