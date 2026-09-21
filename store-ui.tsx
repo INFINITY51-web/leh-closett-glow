@@ -42,7 +42,7 @@ const mapCatalogProduct = (item: CatalogProduct, categories: Array<{ id: string;
   const variants = item.product_variants.filter((variant) => variant.active);
   const images = item.product_images.sort((a, b) => a.sort_order - b.sort_order).map((image) => image.image_url).filter(Boolean);
   const salePrice = variants.find((variant) => variant.price_override != null)?.price_override ?? (item.compare_at_price != null ? item.price : undefined);
-  return { id: item.id, name: item.name, category: categories.find((category) => category.id === item.category_id)?.name ?? "Coleção", price: item.price, salePrice: salePrice ?? undefined, available: variants.length === 0 || variants.some((variant) => variant.stock_quantity > 0), colors: [...new Set(variants.map((variant) => variant.color).filter(Boolean))] as string[], sizes: [...new Set(variants.map((variant) => variant.size).filter(Boolean))] as string[], description: item.description ?? "", images: images.length ? images : [""], badge: item.featured ? "Destaque" : undefined };
+  return { id: item.id, name: item.name, category: categories.find((category) => category.id === item.category_id)?.name ?? "Coleção", price: item.price, ...(salePrice != null ? { salePrice } : {}), available: variants.length === 0 || variants.some((variant) => variant.stock_quantity > 0), colors: [...new Set(variants.map((variant) => variant.color).filter(Boolean))] as string[], sizes: [...new Set(variants.map((variant) => variant.size).filter(Boolean))] as string[], description: item.description ?? "", images: images.length ? images : [""], ...(item.featured ? { badge: "Destaque" } : {}) };
 };
 
 export function CatalogPage() {
@@ -68,7 +68,7 @@ export function CheckoutPage() {
   const selectedQuote = shippingQuotes.find((quote) => quote.id === shippingQuoteId);
   const selectedShippingCost = selectedQuote ? Number(selectedQuote.shipping_total ?? selectedQuote.price ?? selectedQuote.amount ?? 0) : shippingCost;
   const total = subtotal + selectedShippingCost;
-  useEffect(() => { if (!supabase) return; supabase.from("shipping_quotes").select("*").then(({ data }) => { if (data?.length) { setShippingQuotes(data); setShippingQuoteId(data[0].id); setShipping(data[0].id); } }).catch(() => undefined); }, []);
+  useEffect(() => { if (!supabase) return; void (async () => { const { data } = await supabase.from("shipping_quotes").select("*"); if (data?.length) { setShippingQuotes(data); setShippingQuoteId(data[0].id); setShipping(data[0].id); } })().catch(() => undefined); }, []);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const required = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>("[required]"));
@@ -77,7 +77,7 @@ export function CheckoutPage() {
     if (!missing.length) {
       setErrors([]);
       const data = Object.fromEntries(new FormData(event.currentTarget).entries()) as unknown as OrderCustomer;
-      const order = { number: createOrderNumber(), date: new Date().toISOString(), customer: data, items, subtotal, shipping: selectedShippingCost, total, status: "preparando" as const, shippingQuoteId, notes };
+      const order = { number: createOrderNumber(), date: new Date().toISOString(), customer: data, items, subtotal, shipping: selectedShippingCost, total, status: "preparando" as const, ...(shippingQuoteId !== undefined ? { shippingQuoteId } : {}), notes };
       try {
         setIsSubmitting(true);
         const saved = await saveOrder(order);

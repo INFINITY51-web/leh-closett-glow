@@ -31,7 +31,7 @@ function AccountPage() {
         if (!active) return;
         setProfile(account.profile);
         setEmail(auth.user.email ?? "");
-        setForm({ full_name: account.profile?.full_name ?? auth.user.user_metadata?.full_name ?? "", phone: account.profile?.phone ?? "" });
+        setForm({ full_name: account.profile?.full_name ?? auth.user.user_metadata?.["full_name"] ?? "", phone: account.profile?.phone ?? "" });
       } catch (error) {
         if (active) setMessage(error instanceof Error ? error.message : "Não foi possível carregar sua conta.");
       } finally {
