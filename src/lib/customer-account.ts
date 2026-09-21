@@ -33,7 +33,10 @@ export async function updateProfile(values: Partial<Pick<Profile, "full_name" | 
 export async function saveAddress(values: Partial<Address> & { id?: string }) {
   const id = await userId();
   const { id: addressId, ...payload } = values;
-  if (payload.is_default) await supabase!.from("addresses").update({ is_default: false }).eq("user_id", id);
+  if (payload.is_default) {
+    const { error } = await supabase!.from("addresses").update({ is_default: false }).eq("user_id", id);
+    if (error) throw error;
+  }
   const query = addressId
     ? supabase!.from("addresses").update(payload).eq("id", addressId).eq("user_id", id)
     : supabase!.from("addresses").insert({ ...payload, user_id: id });
