@@ -76,11 +76,12 @@ export async function updateProfile(values: Partial<Pick<Profile, "full_name" | 
   // ele ainda não existe e atualiza a mesma linha quando já existe.
   const { data, error } = await supabase!
     .from("profiles")
-    .upsert(payload, { onConflict: "id" })
+    .upsert(payload, { onConflict: "id", ignoreDuplicates: false })
     .select("id, full_name, cpf, phone, role, is_active")
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message || "Não foi possível salvar seus dados.");
+  if (!data) throw new Error("O perfil não foi retornado pelo banco. Verifique as policies de profiles.");
   return data as Profile;
 }
 
