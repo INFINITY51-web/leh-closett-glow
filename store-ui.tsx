@@ -147,12 +147,12 @@ export function ConferencePage() {
       if (!cartId) throw new Error("Carrinho Supabase não encontrado.");
       const savedOrder = sessionStorage.getItem("leh-created-order");
       let created = savedOrder ? JSON.parse(savedOrder) : null;
-      if (!created?.id || !created?.number || created.reviewNumber !== order.number) {
+      if (!created?.id || created.reviewNumber !== order.number) {
         sessionStorage.setItem("leh-supabase-cart-id", cartId);
         created = await saveOrder(order);
         sessionStorage.setItem("leh-created-order", JSON.stringify({ id: created.id, number: created.number, total: created.total, reviewNumber: order.number }));
       }
-      const checkoutUrl = await createMercadoPagoCheckout({ id: created.id, number: created.number, total: Number(created.total ?? order.total) });
+      const checkoutUrl = await createMercadoPagoCheckout({ id: created.id, number: created.number ?? order.number, total: Number(created.total ?? order.total) });
       window.location.assign(checkoutUrl);
     } catch (error) {
       setFinalizeError(error instanceof Error ? error.message : "Não foi possível iniciar o pagamento. Tente novamente.");

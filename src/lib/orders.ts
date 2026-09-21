@@ -12,13 +12,31 @@ export async function saveOrder(order: Order) {
   if (!user) throw new Error("É necessário estar autenticado para criar o pedido.");
   const savedCartId = typeof window !== "undefined" ? sessionStorage.getItem("leh-supabase-cart-id") : null;
   const { data: cart } = await supabase.from("carts").select("id").eq("user_id", user.id).maybeSingle();
-  const cartId = savedCartId ?? cart?.id;
+  const cartId = cart?.id ?? savedCartId;
   if (!cartId) throw new Error("Carrinho Supabase não encontrado.");
-  const { data, error } = await supabase.rpc("create_order_from_cart", { p_cart_id: cartId, p_shipping_address: order.customer.address, p_shipping_cep: order.customer.cep, p_shipping_city: order.customer.city, p_shipping_state: order.customer.state, p_shipping_total: order.shipping, p_shipping_quote_id: order.shippingQuoteId ?? null, p_notes: order.notes ?? null });
+  const { count, error: itemsError } = await supabase.from("cart_items").select("id", { count: "exact", head: true }).eq("cart_id", cartId);
+  if (itemsError) throw itemsError;
+  if (!count) throw new Error("Seu carrinho está vazio.");
+  const shippingAddress = {
+    full_name: order.customer.fullName,
+    email: order.customer.email,
+    cpf: order.customer.cpf,
+    phone: order.customer.phone,
+    address: order.customer.address,
+    cep: order.customer.cep,
+    city: order.customer.city,
+    state: order.customer.state,
+  };
+  const { data, error } = await supabase.rpc("create_order_from_cart", {
+    p_cart_id: cartId,
+    p_shipping_address: shippingAddress,
+    p_shipping_total: order.shipping,
+    p_notes: order.notes ?? null,
+  });
   if (error) throw error;
-  const created = (Array.isArray(data) ? data[0] : data) as { id: string; created_at?: string; order_number?: string };
-  if (!created?.id) throw new Error("O Supabase não retornou o pedido criado.");
-  return { ...order, id: created.id, number: created.order_number ?? order.number, date: created.created_at ?? new Date().toISOString() };
+  const orderId = typeof data === "string" ? data : null;
+  if (!orderId) throw new Error("O Supabase não retornou o UUID do pedido.");
+  return { ...order, id: orderId };
 }
 
 export async function createMercadoPagoCheckout(order: { id: string; number: string; total: number }) {
