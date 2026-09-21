@@ -12,12 +12,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => { if (!supabase) return; supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null)); }, []);
   useEffect(() => { sessionStorage.setItem("leh-cart", JSON.stringify(items)); }, [items]);
   const syncSupabaseCart = async () => {
-    if (!supabase || !userId) return null;
-    const { data: cart, error: cartError } = await supabase.from("carts").select("id").eq("user_id", userId).maybeSingle();
+    if (!supabase) return null;
+    // A tela de conferência pode ser aberta antes do efeito que carrega userId.
+    // Consulte a sessão atual para não interromper a finalização nesse intervalo.
+    const currentUserId = userId ?? (await supabase.auth.getUser()).data.user?.id ?? null;
+    if (!currentUserId) return null;
+    const { data: cart, error: cartError } = await supabase.from("carts").select("id").eq("user_id", currentUserId).maybeSingle();
     if (cartError) throw cartError;
     let cartId = cart?.id;
     if (!cartId) {
-      const created = await supabase.from("carts").insert({ user_id: userId }).select("id").single();
+      const created = await supabase.from("carts").insert({ user_id: currentUserId }).select("id").single();
       if (created.error) throw created.error;
       cartId = created.data?.id;
     }
