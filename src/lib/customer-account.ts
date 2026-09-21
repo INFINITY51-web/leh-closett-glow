@@ -70,9 +70,27 @@ export async function getCustomerAccount() {
 
 export async function updateProfile(values: Partial<Pick<Profile, "full_name" | "cpf" | "phone">>) {
   const id = await userId();
-  const { data, error } = await supabase!.from("profiles").update(values).eq("id", id).select().single();
-  if (error) throw error;
-  return data as Profile;
+  const payload = { id, ...values };
+
+  // Algumas contas antigas não possuem uma linha em profiles. Nesse caso,
+  // UPDATE ... SELECT retorna "0 rows" e o salvamento parece falhar.
+  const { data: updated, error: updateError } = await supabase!
+    .from("profiles")
+    .update(values)
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+
+  if (updated) return updated as Profile;
+  if (updateError && updateError.code !== "PGRST116") throw updateError;
+
+  const { data: created, error: insertError } = await supabase!
+    .from("profiles")
+    .insert(payload)
+    .select()
+    .single();
+  if (insertError) throw insertError;
+  return created as Profile;
 }
 
 export async function saveAddress(values: Partial<Address> & { id?: string }) {
