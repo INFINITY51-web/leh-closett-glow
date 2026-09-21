@@ -40,7 +40,7 @@ function LoginPage() {
         const returnPath = sessionStorage.getItem("leh-checkout-return");
         sessionStorage.removeItem("leh-checkout-return");
         sessionStorage.removeItem("leh-checkout-email");
-        await navigate({ to: returnPath === "/checkout" || returnPath === "/pedido-confirmado" ? returnPath : "/conta", replace: true });
+        await navigate({ to: returnPath === "/checkout" || returnPath === "/conferencia" || returnPath === "/pedido-confirmado" ? returnPath : "/conta", replace: true });
         return;
       } else {
         const { data, error: authError } = await supabase.auth.signUp({ email: identifier.trim(), password, options: { data: { full_name: name.trim() } } });
@@ -50,7 +50,7 @@ function LoginPage() {
           const returnPath = sessionStorage.getItem("leh-checkout-return");
           sessionStorage.removeItem("leh-checkout-return");
           sessionStorage.removeItem("leh-checkout-email");
-          await navigate({ to: returnPath === "/checkout" || returnPath === "/pedido-confirmado" ? returnPath : "/conta", replace: true });
+          await navigate({ to: returnPath === "/checkout" || returnPath === "/conferencia" || returnPath === "/pedido-confirmado" ? returnPath : "/conta", replace: true });
           return;
         }
         setSuccess("Conta criada. Confira seu e-mail para confirmar o acesso.");
