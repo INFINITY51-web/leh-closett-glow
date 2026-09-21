@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowRight, Heart, LogOut, Package, Save, UserRound } from "lucide-react";
+import { ArrowRight, Heart, LogOut, MapPin, Package, Save, UserRound } from "lucide-react";
 import { SiteNavigation } from "../components/site-navigation";
 import { supabase } from "../lib/supabase";
 import { updateProfile, type Profile } from "../lib/customer-account";
@@ -80,7 +80,7 @@ function AccountPage() {
     <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
       <section className="rounded-2xl border border-border bg-card p-6 md:p-8"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/50 text-primary"><UserRound size={18} /></span><div><p className="text-xs uppercase tracking-[0.2em] text-primary">Perfil</p><h2 className="text-2xl font-semibold">Meus dados</h2></div></div><div className="mt-7 space-y-5"><label className="block text-sm font-medium">Nome completo<input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" /></label><label className="block text-sm font-medium">E-mail<input value={email} readOnly aria-readonly="true" className="mt-2 h-12 w-full cursor-not-allowed rounded-xl border border-input bg-muted px-4 text-muted-foreground outline-none" /></label><label className="block text-sm font-medium">Telefone<input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" /></label><button type="button" onClick={save} disabled={saving} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-neon transition hover:brightness-110 disabled:opacity-60"><Save size={16} />{saving ? "Salvando..." : "Salvar dados"}</button></div></section>
       <div className="grid gap-6 sm:grid-cols-3 lg:grid-cols-1">
-        <AccountLink icon={<Package size={20} />} title="Meus endereços" description="Seus endereços salvos aparecerão aqui." disabled />
+        <AccountLink icon={<MapPin size={20} />} title="Meus endereços" description="Gerencie seus endereços de entrega." to="/enderecos" />
         <AccountLink icon={<Package size={20} />} title="Meus pedidos" description="Acompanhe suas compras e entregas." to="/conta" />
         <AccountLink icon={<Heart size={20} />} title="Meus favoritos" description="Revise as peças que você guardou." to="/favoritos" />
       </div>
@@ -88,7 +88,7 @@ function AccountPage() {
   </main></div>;
 }
 
-function AccountLink({ icon, title, description, to, disabled = false }: { icon: ReactNode; title: string; description: string; to?: "/conta" | "/favoritos"; disabled?: boolean }) {
+function AccountLink({ icon, title, description, to, disabled = false }: { icon: ReactNode; title: string; description: string; to?: "/conta" | "/favoritos" | "/enderecos"; disabled?: boolean }) {
   const content = <><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/40 text-primary">{icon}</span><span className="min-w-0"><span className="block text-lg font-semibold">{title}</span><span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{description}</span></span><ArrowRight className="ml-auto shrink-0 text-primary" size={18} /></>;
   return disabled ? <article className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 opacity-70">{content}</article> : <Link to={to!} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-neon-soft">{content}</Link>;
 }
