@@ -13,9 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as ConferenciaRouteImport } from './routes/conferencia'
 import { Route as ContaRouteImport } from './routes/conta'
-import { Route as FavoritosRouteImport } from './routes/favoritos'
 import { Route as EnderecosRouteImport } from './routes/enderecos'
+import { Route as FavoritosRouteImport } from './routes/favoritos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PedidoConfirmadoRouteImport } from './routes/pedido-confirmado'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -42,19 +43,24 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConferenciaRoute = ConferenciaRouteImport.update({
+  id: '/conferencia',
+  path: '/conferencia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContaRoute = ContaRouteImport.update({
   id: '/conta',
   path: '/conta',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FavoritosRoute = FavoritosRouteImport.update({
-  id: '/favoritos',
-  path: '/favoritos',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EnderecosRoute = EnderecosRouteImport.update({
   id: '/enderecos',
   path: '/enderecos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritosRoute = FavoritosRouteImport.update({
+  id: '/favoritos',
+  path: '/favoritos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -88,9 +94,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/conferencia': typeof ConferenciaRoute
   '/conta': typeof ContaRoute
-  '/favoritos': typeof FavoritosRoute
   '/enderecos': typeof EnderecosRoute
+  '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin/login': typeof AdminLoginRoute
@@ -102,9 +109,10 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/conferencia': typeof ConferenciaRoute
   '/conta': typeof ContaRoute
-  '/favoritos': typeof FavoritosRoute
   '/enderecos': typeof EnderecosRoute
+  '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin/login': typeof AdminLoginRoute
@@ -117,9 +125,10 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/conferencia': typeof ConferenciaRoute
   '/conta': typeof ContaRoute
-  '/favoritos': typeof FavoritosRoute
   '/enderecos': typeof EnderecosRoute
+  '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin/login': typeof AdminLoginRoute
@@ -133,9 +142,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/carrinho'
     | '/checkout'
+    | '/conferencia'
     | '/conta'
-    | '/favoritos'
     | '/enderecos'
+    | '/favoritos'
     | '/login'
     | '/pedido-confirmado'
     | '/admin/login'
@@ -147,9 +157,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/carrinho'
     | '/checkout'
+    | '/conferencia'
     | '/conta'
-    | '/favoritos'
     | '/enderecos'
+    | '/favoritos'
     | '/login'
     | '/pedido-confirmado'
     | '/admin/login'
@@ -161,9 +172,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/carrinho'
     | '/checkout'
+    | '/conferencia'
     | '/conta'
-    | '/favoritos'
     | '/enderecos'
+    | '/favoritos'
     | '/login'
     | '/pedido-confirmado'
     | '/admin/login'
@@ -176,7 +188,9 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
+  ConferenciaRoute: typeof ConferenciaRoute
   ContaRoute: typeof ContaRoute
+  EnderecosRoute: typeof EnderecosRoute
   FavoritosRoute: typeof FavoritosRoute
   LoginRoute: typeof LoginRoute
   PedidoConfirmadoRoute: typeof PedidoConfirmadoRoute
@@ -214,6 +228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conferencia': {
+      id: '/conferencia'
+      path: '/conferencia'
+      fullPath: '/conferencia'
+      preLoaderRoute: typeof ConferenciaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/conta': {
       id: '/conta'
       path: '/conta'
@@ -221,18 +242,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/favoritos': {
-      id: '/favoritos'
-      path: '/favoritos'
-      fullPath: '/favoritos'
-      preLoaderRoute: typeof FavoritosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/enderecos': {
       id: '/enderecos'
       path: '/enderecos'
       fullPath: '/enderecos'
       preLoaderRoute: typeof EnderecosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favoritos': {
+      id: '/favoritos'
+      path: '/favoritos'
+      fullPath: '/favoritos'
+      preLoaderRoute: typeof FavoritosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -288,9 +309,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
+  ConferenciaRoute: ConferenciaRoute,
   ContaRoute: ContaRoute,
-  FavoritosRoute: FavoritosRoute,
   EnderecosRoute: EnderecosRoute,
+  FavoritosRoute: FavoritosRoute,
   LoginRoute: LoginRoute,
   PedidoConfirmadoRoute: PedidoConfirmadoRoute,
   CatalogoIdRoute: CatalogoIdRoute,
