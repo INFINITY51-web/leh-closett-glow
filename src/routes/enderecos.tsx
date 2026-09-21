@@ -86,7 +86,8 @@ function AddressesPage() {
         postal_code: form.postal_code?.replace(/\D/g, "") || "",
         is_default: Boolean(form.is_default),
       };
-      await saveAddress(payload);
+      const savedAddress = await saveAddress(payload);
+      setAddresses((current) => [savedAddress, ...current.filter((item) => item.id !== savedAddress.id)]);
       setForm(emptyForm);
       setCepStatus("");
       setMessage("Endereço salvo com sucesso.");

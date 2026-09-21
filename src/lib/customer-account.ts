@@ -40,15 +40,21 @@ export async function updateProfile(values: Partial<Pick<Profile, "full_name" | 
 export async function saveAddress(values: Partial<Address> & { id?: string }) {
   const id = await userId();
   const { id: addressId, ...payload } = values;
-  if (payload.is_default) {
-    const { error } = await supabase!.from("addresses").update({ is_default: false }).eq("user_id", id);
-    if (error) throw error;
-  }
+  // Salva primeiro. Assim uma falha ao marcar o endereço principal não
+  // impede o cadastro do endereço.
   const query = addressId
-    ? supabase!.from("addresses").update(payload).eq("id", addressId).eq("user_id", id)
-    : supabase!.from("addresses").insert({ ...payload, user_id: id });
-  const { error } = await query;
-  if (error) throw error;
+    ? supabase!.from("addresses").update(payload).eq("id", addressId).eq("user_id", id).select("*").single()
+    : supabase!.from("addresses").insert({ ...payload, user_id: id }).select("*").single();
+  const { data, error } = await query;
+  if (error) throw new Error(error.message || "Não foi possível gravar o endereço.");
+
+  if (payload.is_default) {
+    const { error: defaultError } = await supabase!.from("addresses").update({ is_default: false }).eq("user_id", id).neq("id", data.id);
+    if (defaultError) throw new Error(`Endereço salvo, mas não foi possível defini-lo como principal: ${defaultError.message}`);
+    const { error: currentError } = await supabase!.from("addresses").update({ is_default: true }).eq("id", data.id).eq("user_id", id);
+    if (currentError) throw new Error(`Endereço salvo, mas não foi possível defini-lo como principal: ${currentError.message}`);
+  }
+  return data as Address;
 }
 
 export async function deleteAddress(addressId: string) {
