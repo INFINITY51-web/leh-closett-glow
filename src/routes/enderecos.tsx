@@ -56,7 +56,9 @@ function AddressesPage() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    const requiredFields = [form.recipient_name, form.street, form.number, form.city, form.state, form.postal_code];
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    const houseNumber = form.number.replace(/\D/g, "");
+    const requiredFields = [form.recipient_name, form.street, houseNumber, form.city, form.state, form.postal_code];
     if (requiredFields.some((value) => !String(value ?? "").trim())) {
       setMessage("Preencha nome, rua, número, cidade, estado e CEP.");
       return;
@@ -65,14 +67,18 @@ function AddressesPage() {
       setMessage("Digite um CEP válido com 8 números.");
       return;
     }
+    if (phoneDigits.length !== 10 && phoneDigits.length !== 11) {
+      setMessage("Digite um telefone válido com 10 ou 11 números.");
+      return;
+    }
     setSaving(true); setMessage("");
     try {
       const payload: AddressForm = {
         label: form.label?.trim() || "Meu endereço",
         recipient_name: form.recipient_name?.trim() || "",
-        phone: form.phone?.trim() || "",
+        phone: phoneDigits,
         street: form.street?.trim() || "",
-        number: form.number?.trim() || "",
+        number: houseNumber,
         complement: form.complement?.trim() || "",
         neighborhood: form.neighborhood?.trim() || "",
         city: form.city?.trim() || "",
@@ -84,7 +90,7 @@ function AddressesPage() {
       const items = await getCustomerAddresses(); setAddresses(items); setForm(emptyForm); setCepStatus(""); setMessage("Endereço salvo com sucesso.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar o endereço. Confira os dados e tente novamente."); } finally { setSaving(false); }
   }
-  const field = (key: keyof AddressForm, label: string, extra = "") => <label className={`block text-sm font-medium ${extra}`}>{label}<input value={String(form[key] ?? "")} onChange={(event) => { const value = key === "postal_code" ? event.target.value.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2") : event.target.value; update(key, value); if (key === "postal_code") void lookupCep(value); }} inputMode={key === "postal_code" ? "numeric" : undefined} maxLength={key === "postal_code" ? 9 : undefined} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" />{key === "postal_code" && <span role="status" className={`mt-2 block text-xs ${cepStatus.includes("localizado") ? "text-primary" : "text-muted-foreground"}`}>{lookingUpCep ? "Consultando CEP..." : cepStatus}</span>}</label>;
+  const field = (key: keyof AddressForm, label: string, extra = "") => <label className={`block text-sm font-medium ${extra}`}>{label}<input value={String(form[key] ?? "")} onChange={(event) => { const rawValue = event.target.value; const value = key === "postal_code" ? rawValue.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2") : key === "phone" ? rawValue.replace(/\D/g, "").slice(0, 11) : key === "number" ? rawValue.replace(/\D/g, "").slice(0, 6) : rawValue; update(key, value); if (key === "postal_code") void lookupCep(value); }} inputMode={key === "postal_code" || key === "phone" || key === "number" ? "numeric" : undefined} maxLength={key === "postal_code" ? 9 : key === "phone" ? 11 : key === "number" ? 6 : undefined} placeholder={key === "phone" ? "Somente 10 ou 11 números" : undefined} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" />{key === "phone" && <span className="mt-2 block text-xs text-muted-foreground">Informe DDD + número: 10 ou 11 dígitos.</span>}{key === "postal_code" && <span role="status" className={`mt-2 block text-xs ${cepStatus.includes("localizado") ? "text-primary" : "text-muted-foreground"}`}>{lookingUpCep ? "Consultando CEP..." : cepStatus}</span>}</label>;
 
   if (loading) return <div className="min-h-screen bg-background text-foreground"><SiteNavigation /><main className="mx-auto max-w-6xl px-5 pb-24 pt-32 md:px-8"><div className="animate-pulse space-y-4"><div className="h-10 w-1/2 rounded-lg bg-muted" /><div className="h-96 rounded-2xl bg-muted" /></div></main></div>;
   return <div className="min-h-screen bg-background pb-16 text-foreground md:pb-0"><SiteNavigation /><main className="mx-auto max-w-6xl px-5 pb-24 pt-28 md:px-8 md:pt-36">
