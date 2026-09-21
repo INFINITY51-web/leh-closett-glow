@@ -10,9 +10,11 @@ export async function saveOrder(order: Order) {
   if (!supabase) throw new Error("Supabase não configurado");
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("É necessário estar autenticado para criar o pedido.");
+  const savedCartId = typeof window !== "undefined" ? sessionStorage.getItem("leh-supabase-cart-id") : null;
   const { data: cart } = await supabase.from("carts").select("id").eq("user_id", user.id).maybeSingle();
-  if (!cart?.id) throw new Error("Carrinho Supabase não encontrado.");
-  const { data, error } = await supabase.rpc("create_order_from_cart", { p_cart_id: cart.id, p_shipping_address: order.customer.address, p_shipping_cep: order.customer.cep, p_shipping_city: order.customer.city, p_shipping_state: order.customer.state, p_shipping_total: order.shipping, p_shipping_quote_id: order.shippingQuoteId ?? null, p_notes: order.notes ?? null });
+  const cartId = savedCartId ?? cart?.id;
+  if (!cartId) throw new Error("Carrinho Supabase não encontrado.");
+  const { data, error } = await supabase.rpc("create_order_from_cart", { p_cart_id: cartId, p_shipping_address: order.customer.address, p_shipping_cep: order.customer.cep, p_shipping_city: order.customer.city, p_shipping_state: order.customer.state, p_shipping_total: order.shipping, p_shipping_quote_id: order.shippingQuoteId ?? null, p_notes: order.notes ?? null });
   if (error) throw error;
   const created = (Array.isArray(data) ? data[0] : data) as { id: string; created_at?: string; order_number?: string };
   if (!created?.id) throw new Error("O Supabase não retornou o pedido criado.");

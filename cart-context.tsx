@@ -18,6 +18,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       let cartId = cart?.id;
       if (!cartId) { const created = await supabase.from("carts").insert({ user_id: userId }).select("id").single(); cartId = created.data?.id; }
       if (!cartId) return;
+      sessionStorage.setItem("leh-supabase-cart-id", cartId);
       for (const item of items) {
         if (!item.variantId) continue;
         await supabase.from("cart_items").upsert({ cart_id: cartId, product_id: item.product.id, variant_id: item.variantId, quantity: item.quantity, unit_price: item.product.salePrice ?? item.product.price }, { onConflict: "cart_id,variant_id" });
