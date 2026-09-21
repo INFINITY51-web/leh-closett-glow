@@ -104,7 +104,9 @@ export function CheckoutPage() {
       // pode conter o valor antigo porque o preenchimento ocorre após o mount.
       return savedValue || formValue;
     };
-    const missing = requiredFields.filter(([name]) => !valueFor(name)).map(([, label]) => label);\n    if (!selectedAddressId) missing.push("endereço de entrega selecionado");\n    if (!shippingQuoteId && shipping !== "standard" && shipping !== "express") missing.push("frete selecionado");
+    const missing = requiredFields.filter(([name]) => !valueFor(name)).map(([, label]) => label);
+    if (!selectedAddressId) missing.push("endereço de entrega selecionado");
+    if (!shippingQuoteId && shipping !== "standard" && shipping !== "express") missing.push("frete selecionado");
     if (valueFor("cpf") && !isValidCpf(valueFor("cpf"))) missing.push("CPF válido");
     if (valueFor("phone") && !isValidPhone(valueFor("phone"))) missing.push("Telefone válido");
     setErrors(missing);
