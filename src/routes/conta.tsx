@@ -20,7 +20,7 @@ function AccountPage() {
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState("");
-  const selectedOrder = orders.find((item) => item.id === String(search.order ?? ""));
+  const selectedOrder = orders.find((item) => item.id === String(search["order"] ?? ""));
 
   useEffect(() => {
     let active = true;
