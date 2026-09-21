@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProductCard } from "./store-ui";
-import { SiteNavigation } from "../components/site-navigation";
-import { getCustomerAccount, toggleFavorite } from "../lib/customer-account";
-import { products, type Product } from "../data/products";
+import { SiteNavigation } from "./src/components/site-navigation";
+import { getCustomerAccount, toggleFavorite } from "./src/lib/customer-account";
+import { products, type Product } from "./src/data/products";
 
 export const Route = createFileRoute("/favoritos")({ component: FavoritesPage });
 
