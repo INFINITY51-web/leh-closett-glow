@@ -37,14 +37,20 @@ function LoginPage() {
         const { error: authError } = await supabase.auth.signInWithPassword({ ...credentials, password });
         if (authError) throw authError;
         setLoading(false);
-        await navigate({ to: "/conta", replace: true });
+        const returnPath = sessionStorage.getItem("leh-checkout-return");
+        sessionStorage.removeItem("leh-checkout-return");
+        sessionStorage.removeItem("leh-checkout-email");
+        await navigate({ to: returnPath === "/checkout" ? "/checkout" : "/conta", replace: true });
         return;
       } else {
         const { data, error: authError } = await supabase.auth.signUp({ email: identifier.trim(), password, options: { data: { full_name: name.trim() } } });
         if (authError) throw authError;
         if (data.session) {
           setLoading(false);
-          await navigate({ to: "/conta", replace: true });
+          const returnPath = sessionStorage.getItem("leh-checkout-return");
+          sessionStorage.removeItem("leh-checkout-return");
+          sessionStorage.removeItem("leh-checkout-email");
+          await navigate({ to: returnPath === "/checkout" ? "/checkout" : "/conta", replace: true });
           return;
         }
         setSuccess("Conta criada. Confira seu e-mail para confirmar o acesso.");
