@@ -80,7 +80,13 @@ export async function updateProfile(values: Partial<Pick<Profile, "full_name" | 
     .select("id, full_name, cpf, phone, role, is_active")
     .maybeSingle();
 
-  if (error) throw new Error(error.message || "Não foi possível salvar seus dados.");
+  if (error) {
+    const normalized = error.message.toLowerCase();
+    if (error.code === "23505" || normalized.includes("profiles_cpf_normalized_unique") || normalized.includes("profiles_phone_normalized_unique")) {
+      throw new Error("Este CPF ou telefone já pertence a outro cliente. Informe um dado diferente.");
+    }
+    throw new Error(error.message || "Não foi possível salvar seus dados.");
+  }
   if (!data) throw new Error("O perfil não foi retornado pelo banco. Verifique as policies de profiles.");
   return data as Profile;
 }
