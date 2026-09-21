@@ -204,4 +204,8 @@
       animation-duration: 0.01ms !important;
     }
   }
+
+  #lovable-badge {
+    display: none !important;
+  }
 }
