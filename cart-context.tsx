@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Product } from "./src/data/products";
 import { supabase } from "./src/lib/supabase";
 
@@ -9,7 +9,13 @@ const CartContext = createContext<CartContextValue | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => { try { return JSON.parse(sessionStorage.getItem("leh-cart") || "[]"); } catch { return []; } });
   const [userId, setUserId] = useState<string | null>(null);
-  useEffect(() => { if (!supabase) return; supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null)); }, []);
+  const previousUserId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setUserId(session?.user?.id ?? null));
+    return () => listener.subscription.unsubscribe();
+  }, []);
   useEffect(() => { sessionStorage.setItem("leh-cart", JSON.stringify(items)); }, [items]);
   const syncSupabaseCart = async () => {
     if (!supabase) return null;
@@ -27,14 +33,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     if (!cartId) return null;
     sessionStorage.setItem("leh-supabase-cart-id", cartId);
+    const mergeKey = `leh-cart-merged-${currentUserId}`;
+    const shouldMerge = sessionStorage.getItem(mergeKey) !== "true";
     for (const item of items) {
       if (!item.variantId) continue;
-      const { error } = await supabase.from("cart_items").upsert({ cart_id: cartId, product_id: item.product.id, variant_id: item.variantId, quantity: item.quantity, unit_price: item.product.salePrice ?? item.product.price }, { onConflict: "cart_id,variant_id" });
+      let quantity = item.quantity;
+      if (shouldMerge) {
+        const { data: existing, error: existingError } = await supabase.from("cart_items").select("quantity").eq("cart_id", cartId).eq("variant_id", item.variantId).maybeSingle();
+        if (existingError) throw existingError;
+        quantity += Number(existing?.quantity ?? 0);
+      }
+      const { error } = await supabase.from("cart_items").upsert({ cart_id: cartId, product_id: item.product.id, variant_id: item.variantId, quantity, unit_price: item.product.salePrice ?? item.product.price }, { onConflict: "cart_id,variant_id" });
       if (error) throw error;
     }
+    sessionStorage.setItem(mergeKey, "true");
     return cartId;
   };
-  useEffect(() => { void syncSupabaseCart().catch(() => undefined); }, [userId, items]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const wasAuthenticated = previousUserId.current !== null;
+    void (async () => {
+      if (!wasAuthenticated) {
+        const cartId = await syncSupabaseCart();
+        if (!cartId) throw new Error("Não foi possível vincular o carrinho à conta.");
+        sessionStorage.setItem("leh-supabase-cart-id", cartId);
+      } else {
+        await syncSupabaseCart();
+      }
+    })().catch(() => undefined);
+    previousUserId.current = userId;
+  }, [userId]);
+  useEffect(() => { if (userId) void syncSupabaseCart().catch(() => undefined); }, [items, userId]);
   const value = useMemo(() => ({ items, totalItems: items.reduce((sum, item) => sum + item.quantity, 0), subtotal: items.reduce((sum, item) => sum + (item.product.salePrice ?? item.product.price) * item.quantity, 0), addItem: (product: Product, quantity: number, size: string, color: string) => setItems((current) => { const variantId = product.variantIds?.[`${size}::${color}`]; const existing = current.find((item) => item.product.id === product.id && item.size === size && item.color === color); return existing ? current.map((item) => item === existing ? { ...item, quantity: item.quantity + quantity } : item) : [...current, { product, quantity, size, color, ...(variantId !== undefined ? { variantId } : {}) }]; }), updateQuantity: (id: string, quantity: number) => setItems((current) => current.map((item) => getCartItemKey(item) === id ? { ...item, quantity: Math.max(1, quantity) } : item)), removeItem: (id: string) => setItems((current) => current.filter((item) => getCartItemKey(item) !== id)), clearCart: () => setItems([]), syncSupabaseCart }), [items, userId]);
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
