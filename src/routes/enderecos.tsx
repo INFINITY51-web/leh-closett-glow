@@ -40,7 +40,7 @@ function AddressesPage() {
   function update(field: keyof AddressForm, value: string | boolean) { setForm((current) => ({ ...current, [field]: value })); }
 
   async function lookupCep(rawCep: string) {
-    const cep = rawCep.replace(/\\D/g, "");
+    const cep = rawCep.replace(/\D/g, "");
     if (cep.length !== 8) { setCepStatus(cep.length ? "Digite um CEP com 8 números." : ""); return; }
     setLookingUpCep(true); setCepStatus("Consultando CEP...");
     try {
@@ -59,12 +59,24 @@ function AddressesPage() {
     if (!form.recipient_name?.trim() || !form.street?.trim() || !form.number?.trim() || !form.city?.trim() || !form.state?.trim() || !form.postal_code?.trim()) { setMessage("Preencha nome, rua, número, cidade, estado e CEP."); return; }
     setSaving(true); setMessage("");
     try {
-      const payload = Object.fromEntries(Object.entries({ ...form, label: form.label?.trim() || "Meu endereço", postal_code: form.postal_code?.trim() }).filter(([, value]) => value !== undefined)) as AddressForm;
+      const payload: AddressForm = {
+        label: form.label?.trim() || "Meu endereço",
+        recipient_name: form.recipient_name?.trim() || "",
+        phone: form.phone?.trim() || "",
+        street: form.street?.trim() || "",
+        number: form.number?.trim() || "",
+        complement: form.complement?.trim() || "",
+        neighborhood: form.neighborhood?.trim() || "",
+        city: form.city?.trim() || "",
+        state: form.state?.trim().toUpperCase() || "",
+        postal_code: form.postal_code?.replace(/\D/g, "") || "",
+        is_default: Boolean(form.is_default),
+      };
       await saveAddress(payload);
       const items = await getCustomerAddresses(); setAddresses(items); setForm(emptyForm); setCepStatus(""); setMessage("Endereço salvo com sucesso.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar o endereço. Confira os dados e tente novamente."); } finally { setSaving(false); }
   }
-  const field = (key: keyof AddressForm, label: string, extra = "") => <label className={`block text-sm font-medium ${extra}`}>{label}<input required={!["label", "phone", "complement"].includes(key)} value={String(form[key] ?? "")} onChange={(event) => { const value = key === "postal_code" ? event.target.value.replace(/\\D/g, "").slice(0, 8).replace(/(\\d{5})(\\d)/, "$1-$2") : event.target.value; update(key, value); if (key === "postal_code") void lookupCep(value); }} inputMode={key === "postal_code" ? "numeric" : undefined} maxLength={key === "postal_code" ? 9 : undefined} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" />{key === "postal_code" && <span role="status" className={`mt-2 block text-xs ${cepStatus.includes("localizado") ? "text-primary" : "text-muted-foreground"}`}>{lookingUpCep ? "Consultando CEP..." : cepStatus}</span>}</label>;
+  const field = (key: keyof AddressForm, label: string, extra = "") => <label className={`block text-sm font-medium ${extra}`}>{label}<input required={!["label", "phone", "complement"].includes(key)} value={String(form[key] ?? "")} onChange={(event) => { const value = key === "postal_code" ? event.target.value.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2") : event.target.value; update(key, value); if (key === "postal_code") void lookupCep(value); }} inputMode={key === "postal_code" ? "numeric" : undefined} maxLength={key === "postal_code" ? 9 : undefined} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" />{key === "postal_code" && <span role="status" className={`mt-2 block text-xs ${cepStatus.includes("localizado") ? "text-primary" : "text-muted-foreground"}`}>{lookingUpCep ? "Consultando CEP..." : cepStatus}</span>}</label>;
 
   if (loading) return <div className="min-h-screen bg-background text-foreground"><SiteNavigation /><main className="mx-auto max-w-6xl px-5 pb-24 pt-32 md:px-8"><div className="animate-pulse space-y-4"><div className="h-10 w-1/2 rounded-lg bg-muted" /><div className="h-96 rounded-2xl bg-muted" /></div></main></div>;
   return <div className="min-h-screen bg-background pb-16 text-foreground md:pb-0"><SiteNavigation /><main className="mx-auto max-w-6xl px-5 pb-24 pt-28 md:px-8 md:pt-36">
