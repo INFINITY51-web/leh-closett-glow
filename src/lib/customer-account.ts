@@ -1,6 +1,26 @@
 import { supabase } from "./supabase";
 
-export type Profile = { id: string; full_name?: string | null; phone?: string | null; role?: string | null; is_active?: boolean | null };
+export type Profile = { id: string; full_name?: string | null; cpf?: string | null; phone?: string | null; role?: string | null; is_active?: boolean | null };
+
+export function formatCpf(value: string) {
+  const digits = value.replace(/\\D/g, "").slice(0, 11);
+  return digits.replace(/(\\d{3})(\\d)/, "$1.$2").replace(/(\\d{3})(\\d)/, "$1.$2").replace(/(\\d{3})(\\d{1,2})$/, "$1-$2");
+}
+
+export function isValidCpf(value: string) {
+  const cpf = value.replace(/\\D/g, "");
+  if (cpf.length !== 11 || /^(\\d)\\1{10}$/.test(cpf)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i += 1) sum += Number(cpf[i]) * (10 - i);
+  let digit = (sum * 10) % 11;
+  if (digit === 10) digit = 0;
+  if (digit !== Number(cpf[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i += 1) sum += Number(cpf[i]) * (11 - i);
+  digit = (sum * 10) % 11;
+  if (digit === 10) digit = 0;
+  return digit === Number(cpf[10]);
+}
 export type Address = { id: string; label?: string | null; recipient_name?: string | null; phone?: string | null; street?: string | null; number?: string | null; complement?: string | null; neighborhood?: string | null; city?: string | null; state?: string | null; postal_code?: string | null; is_default?: boolean | null };
 
 async function userId() {
@@ -30,7 +50,7 @@ export async function getCustomerAccount() {
   return { profile: profile.data as Profile | null, addresses: (addresses.data ?? []) as Address[], favorites: favorites.data ?? [] };
 }
 
-export async function updateProfile(values: Partial<Pick<Profile, "full_name" | "phone">>) {
+export async function updateProfile(values: Partial<Pick<Profile, "full_name" | "cpf" | "phone">>) {
   const id = await userId();
   const { data, error } = await supabase!.from("profiles").update(values).eq("id", id).select().single();
   if (error) throw error;
