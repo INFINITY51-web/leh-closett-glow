@@ -28,14 +28,18 @@ function AccountPage() {
           await navigate({ to: "/login", replace: true });
           return;
         }
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("id, full_name, phone, role, is_active")
           .eq("id", user.id)
           .maybeSingle();
         if (!active) return;
         const authName = typeof user.user_metadata?.["full_name"] === "string" ? user.user_metadata["full_name"] : "";
-        const loadedProfile = profileData as Profile | null;
+        // A sessão válida já garante o acesso à área privada. Se o perfil
+        // ainda não estiver visível pela RLS, usamos os dados do Auth sem
+        // exibir um erro que contradiz o acesso bem-sucedido.
+        const loadedProfile = profileError ? null : profileData as Profile | null;
+        setMessage("");
         setProfile(loadedProfile);
         setEmail(user.email ?? "");
         setForm({ full_name: loadedProfile?.full_name?.trim() || authName, phone: loadedProfile?.phone ?? "" });
