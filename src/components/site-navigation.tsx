@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Heart, LayoutGrid, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "../../cart-context";
+import { supabase } from "../lib/supabase"; from "../../cart-context";
 
 const navItems = [
   { label: "Novidades", to: "/catalogo" as const },
@@ -33,6 +34,18 @@ function CartLink({ mobile = false }: { mobile?: boolean }) {
 
 export function SiteNavigation() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountPath, setAccountPath] = useState<"/login" | "/conta">("/login");
+
+  useEffect(() => {
+    let active = true;
+    supabase?.auth.getSession().then(({ data }) => {
+      if (active) setAccountPath(data.session ? "/conta" : "/login");
+    });
+    const listener = supabase?.auth.onAuthStateChange((_event, session) => {
+      if (active) setAccountPath(session ? "/conta" : "/login");
+    });
+    return () => { active = false; listener?.data.subscription.unsubscribe(); };
+  }, []);
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 border-b border-foreground/10 bg-background/70 backdrop-blur-xl">
@@ -47,7 +60,7 @@ export function SiteNavigation() {
           <div className="flex shrink-0 items-center gap-1 min-[380px]:gap-2">
             <Link to="/catalogo" aria-label="Buscar produtos" className="inline-flex shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"><Search size={18} /></Link>
             <Link to="/favoritos" aria-label="Favoritos" className="hidden shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-primary sm:inline-flex"><Heart size={18} /></Link>
-            <Link to="/login" aria-label="Minha conta" className="hidden shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-primary sm:inline-flex"><UserRound size={18} /></Link>
+            <Link to={accountPath} aria-label="Minha conta" className="hidden shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-primary sm:inline-flex"><UserRound size={18} /></Link>
             <CartLink />
           </div>
         </div>
@@ -58,7 +71,7 @@ export function SiteNavigation() {
         <Link to="/catalogo" className="flex min-w-16 flex-col items-center gap-1 p-2 text-[10px] text-muted-foreground hover:text-primary"><LayoutGrid size={17} /><span>Categorias</span></Link>
         <Link to="/favoritos" className="flex min-w-16 flex-col items-center gap-1 p-2 text-[10px] text-muted-foreground hover:text-primary"><Heart size={17} /><span>Favoritos</span></Link>
         <CartLink mobile />
-        <Link to="/login" className="flex min-w-16 flex-col items-center gap-1 p-2 text-[10px] text-muted-foreground hover:text-primary"><UserRound size={17} /><span>Conta</span></Link>
+        <Link to={accountPath} className="flex min-w-16 flex-col items-center gap-1 p-2 text-[10px] text-muted-foreground hover:text-primary"><UserRound size={17} /><span>Conta</span></Link>
       </nav>
     </>
   );
