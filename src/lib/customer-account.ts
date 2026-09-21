@@ -72,25 +72,16 @@ export async function updateProfile(values: Partial<Pick<Profile, "full_name" | 
   const id = await userId();
   const payload = { id, ...values };
 
-  // Algumas contas antigas não possuem uma linha em profiles. Nesse caso,
-  // UPDATE ... SELECT retorna "0 rows" e o salvamento parece falhar.
-  const { data: updated, error: updateError } = await supabase!
+  // Upsert torna a ordem do salvamento determinística: cria o perfil quando
+  // ele ainda não existe e atualiza a mesma linha quando já existe.
+  const { data, error } = await supabase!
     .from("profiles")
-    .update(values)
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-
-  if (updated) return updated as Profile;
-  if (updateError && updateError.code !== "PGRST116") throw updateError;
-
-  const { data: created, error: insertError } = await supabase!
-    .from("profiles")
-    .insert(payload)
-    .select()
+    .upsert(payload, { onConflict: "id" })
+    .select("id, full_name, cpf, phone, role, is_active")
     .single();
-  if (insertError) throw insertError;
-  return created as Profile;
+
+  if (error) throw new Error(error.message || "Não foi possível salvar seus dados.");
+  return data as Profile;
 }
 
 export async function saveAddress(values: Partial<Address> & { id?: string }) {
