@@ -87,8 +87,19 @@ function AddressesPage() {
         is_default: Boolean(form.is_default),
       };
       await saveAddress(payload);
-      const items = await getCustomerAddresses(); setAddresses(items); setForm(emptyForm); setCepStatus(""); setMessage("Endereço salvo com sucesso.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar o endereço. Confira os dados e tente novamente."); } finally { setSaving(false); }
+      setForm(emptyForm);
+      setCepStatus("");
+      setMessage("Endereço salvo com sucesso.");
+      try {
+        const items = await getCustomerAddresses();
+        setAddresses(items);
+      } catch {
+        // O cadastro já foi concluído; a atualização da lista não deve mascarar o sucesso.
+      }
+    } catch (error) {
+      const details = error instanceof Error ? error.message : "Confira os dados e tente novamente.";
+      setMessage(`Não foi possível salvar o endereço. ${details}`);
+    } finally { setSaving(false); }
   }
   const field = (key: keyof AddressForm, label: string, extra = "") => <label className={`block text-sm font-medium ${extra}`}>{label}<input value={String(form[key] ?? "")} onChange={(event) => { const rawValue = event.target.value; const value = key === "postal_code" ? rawValue.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2") : key === "phone" ? rawValue.replace(/\D/g, "").slice(0, 11) : key === "number" ? rawValue.replace(/\D/g, "").slice(0, 6) : rawValue; update(key, value); if (key === "postal_code") void lookupCep(value); }} inputMode={key === "postal_code" || key === "phone" || key === "number" ? "numeric" : undefined} maxLength={key === "postal_code" ? 9 : key === "phone" ? 11 : key === "number" ? 6 : undefined} placeholder={key === "phone" ? "Somente 10 ou 11 números" : undefined} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" />{key === "phone" && <span className="mt-2 block text-xs text-muted-foreground">Informe DDD + número: 10 ou 11 dígitos.</span>}{key === "postal_code" && <span role="status" className={`mt-2 block text-xs ${cepStatus.includes("localizado") ? "text-primary" : "text-muted-foreground"}`}>{lookingUpCep ? "Consultando CEP..." : cepStatus}</span>}</label>;
 
