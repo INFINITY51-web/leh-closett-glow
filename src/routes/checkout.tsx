@@ -7,7 +7,13 @@ export const Route = createFileRoute("/checkout")({
     if (!supabase) throw redirect({ to: "/login" });
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
-      sessionStorage.setItem("leh-checkout-return", "/checkout");
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("leh-checkout-return", "/checkout");
+        } catch {
+          /* sessão indisponível */
+        }
+      }
       throw redirect({ to: "/login" });
     }
   },
