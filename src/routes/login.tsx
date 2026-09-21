@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { useSession } from "../lib/use-session";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -9,6 +10,7 @@ type Mode = "login" | "signup";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { loading: sessionLoading, user } = useSession();
   const [mode, setMode] = useState<Mode>("login");
   const [identifier, setIdentifier] = useState("");
   const [name, setName] = useState("");
@@ -18,6 +20,15 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Usuária já conectada não precisa ver o login: segue direto para o destino.
+  useEffect(() => {
+    if (sessionLoading || !user) return;
+    let returnPath: string | null = null;
+    try { returnPath = sessionStorage.getItem("leh-checkout-return"); sessionStorage.removeItem("leh-checkout-return"); } catch { returnPath = null; }
+    const allowed = ["/checkout", "/conferencia", "/pedido-confirmado", "/carrinho", "/enderecos"];
+    void navigate({ to: returnPath && allowed.includes(returnPath) ? returnPath : "/conta", replace: true });
+  }, [sessionLoading, user]);
 
   function changeMode(next: Mode) {
     setMode(next); setError(""); setSuccess("");
@@ -40,7 +51,7 @@ function LoginPage() {
         const returnPath = sessionStorage.getItem("leh-checkout-return");
         sessionStorage.removeItem("leh-checkout-return");
         sessionStorage.removeItem("leh-checkout-email");
-        await navigate({ to: returnPath === "/checkout" || returnPath === "/conferencia" || returnPath === "/pedido-confirmado" ? returnPath : "/conta", replace: true });
+        await navigate({ to: returnPath === "/checkout" || returnPath === "/conferencia" || returnPath === "/pedido-confirmado" || returnPath === "/carrinho" || returnPath === "/enderecos" ? returnPath : "/conta", replace: true });
         return;
       } else {
         const { data, error: authError } = await supabase.auth.signUp({ email: identifier.trim(), password, options: { data: { full_name: name.trim() } } });
@@ -50,7 +61,7 @@ function LoginPage() {
           const returnPath = sessionStorage.getItem("leh-checkout-return");
           sessionStorage.removeItem("leh-checkout-return");
           sessionStorage.removeItem("leh-checkout-email");
-          await navigate({ to: returnPath === "/checkout" || returnPath === "/conferencia" || returnPath === "/pedido-confirmado" ? returnPath : "/conta", replace: true });
+          await navigate({ to: returnPath === "/checkout" || returnPath === "/conferencia" || returnPath === "/pedido-confirmado" || returnPath === "/carrinho" || returnPath === "/enderecos" ? returnPath : "/conta", replace: true });
           return;
         }
         setSuccess("Conta criada. Confira seu e-mail para confirmar o acesso.");
