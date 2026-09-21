@@ -47,7 +47,7 @@ export function SiteNavigation() {
           <div className="flex shrink-0 items-center gap-1 min-[380px]:gap-2">
             <Link to="/catalogo" aria-label="Buscar produtos" className="inline-flex shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"><Search size={18} /></Link>
             <Link to="/favoritos" aria-label="Favoritos" className="hidden shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-primary sm:inline-flex"><Heart size={18} /></Link>
-            <Link to="/conta" aria-label="Minha conta" className="hidden shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-primary sm:inline-flex"><UserRound size={18} /></Link>
+            <Link to="/login" aria-label="Minha conta" className="hidden shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-primary sm:inline-flex"><UserRound size={18} /></Link>
             <CartLink />
           </div>
         </div>
@@ -58,7 +58,7 @@ export function SiteNavigation() {
         <Link to="/catalogo" className="flex min-w-16 flex-col items-center gap-1 p-2 text-[10px] text-muted-foreground hover:text-primary"><LayoutGrid size={17} /><span>Categorias</span></Link>
         <Link to="/favoritos" className="flex min-w-16 flex-col items-center gap-1 p-2 text-[10px] text-muted-foreground hover:text-primary"><Heart size={17} /><span>Favoritos</span></Link>
         <CartLink mobile />
-        <Link to="/conta" className="flex min-w-16 flex-col items-center gap-1 p-2 text-[10px] text-muted-foreground hover:text-primary"><UserRound size={17} /><span>Conta</span></Link>
+        <Link to="/login" className="flex min-w-16 flex-col items-center gap-1 p-2 text-[10px] text-muted-foreground hover:text-primary"><UserRound size={17} /><span>Conta</span></Link>
       </nav>
     </>
   );
