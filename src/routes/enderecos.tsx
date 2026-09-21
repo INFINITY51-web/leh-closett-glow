@@ -56,14 +56,14 @@ function AddressesPage() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    const phoneDigits = form.phone.replace(/\D/g, "");
-    const houseNumber = form.number.replace(/\D/g, "");
+    const phoneDigits = String(form.phone ?? "").replace(/\D/g, "");
+    const houseNumber = String(form.number ?? "").replace(/\D/g, "");
     const requiredFields = [form.recipient_name, form.street, houseNumber, form.city, form.state, form.postal_code];
     if (requiredFields.some((value) => !String(value ?? "").trim())) {
       setMessage("Preencha nome, rua, número, cidade, estado e CEP.");
       return;
     }
-    if (form.postal_code.replace(/\D/g, "").length !== 8) {
+    if (String(form.postal_code ?? "").replace(/\D/g, "").length !== 8) {
       setMessage("Digite um CEP válido com 8 números.");
       return;
     }
