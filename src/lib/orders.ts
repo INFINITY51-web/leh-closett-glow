@@ -66,7 +66,14 @@ export async function syncMercadoPagoOrder(externalReference: string) {
 
 export async function getOrder(number: string) {
   if (!supabase) throw new Error("Supabase não configurado");
-  const { data, error } = await supabase.from("orders").select("*, order_items(*)").eq("order_number", number).single();
+  const { data, error } = await supabase.from("orders").select("*, order_items(*), shipments(*)").eq("order_number", number).single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getOrderById(id: string) {
+  if (!supabase) throw new Error("Supabase não configurado");
+  const { data, error } = await supabase.from("orders").select("*, order_items(*), shipments(*)").eq("id", id).single();
   if (error) throw error;
   return data;
 }

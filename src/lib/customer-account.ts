@@ -144,6 +144,13 @@ export async function listCustomerOrders() {
   return (data ?? []) as CustomerOrder[];
 }
 
+export async function getCustomerOrder(orderId: string) {
+  const id = await userId();
+  const { data, error } = await supabase!.from("orders").select("*, order_items(*), shipments(*)").eq("id", orderId).eq("user_id", id).single();
+  if (error) throw error;
+  return data as CustomerOrder;
+}
+
 export async function requestReturn(orderId: string, reason: string) {
   const id = await userId();
   const { data, error } = await supabase!.from("returns").insert({ order_id: orderId, user_id: id, reason, status: "requested" }).select().single();
