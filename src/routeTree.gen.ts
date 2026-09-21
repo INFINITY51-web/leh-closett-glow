@@ -15,6 +15,7 @@ import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as FavoritosRouteImport } from './routes/favoritos'
+import { Route as EnderecosRouteImport } from './routes/enderecos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PedidoConfirmadoRouteImport } from './routes/pedido-confirmado'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -51,6 +52,11 @@ const FavoritosRoute = FavoritosRouteImport.update({
   path: '/favoritos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnderecosRoute = EnderecosRouteImport.update({
+  id: '/enderecos',
+  path: '/enderecos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/conta': typeof ContaRoute
   '/favoritos': typeof FavoritosRoute
+  '/enderecos': typeof EnderecosRoute
   '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin/login': typeof AdminLoginRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/conta': typeof ContaRoute
   '/favoritos': typeof FavoritosRoute
+  '/enderecos': typeof EnderecosRoute
   '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin/login': typeof AdminLoginRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/conta': typeof ContaRoute
   '/favoritos': typeof FavoritosRoute
+  '/enderecos': typeof EnderecosRoute
   '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
   '/admin/login': typeof AdminLoginRoute
@@ -216,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FavoritosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/enderecos': {
+      id: '/enderecos'
+      path: '/enderecos'
+      fullPath: '/enderecos'
+      preLoaderRoute: typeof EnderecosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -271,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   ContaRoute: ContaRoute,
   FavoritosRoute: FavoritosRoute,
+  EnderecosRoute: EnderecosRoute,
   LoginRoute: LoginRoute,
   PedidoConfirmadoRoute: PedidoConfirmadoRoute,
   CatalogoIdRoute: CatalogoIdRoute,
