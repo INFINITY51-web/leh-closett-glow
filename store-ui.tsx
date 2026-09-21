@@ -76,12 +76,35 @@ export function CheckoutPage() {
   useEffect(() => { if (!supabase) return; void (async () => { const { data } = await supabase.from("shipping_quotes").select("*"); if (data?.length) { setShippingQuotes(data); setShippingQuoteId(data[0].id); setShipping(data[0].id); } })().catch(() => undefined); }, []);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const required = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>("[required]"));
-    const missing = required.filter((field) => !field.value.trim()).map((field) => field.getAttribute("aria-label") || field.name);
+    const formData = new FormData(event.currentTarget);
+    const selectedAddress = savedAddresses.find((address) => address.id === selectedAddressId);
+    const savedAddressValues = selectedAddress ? {
+      fullName: selectedAddress.recipient_name ?? "",
+      phone: selectedAddress.phone ?? "",
+      cep: selectedAddress.postal_code ?? "",
+      city: selectedAddress.city ?? "",
+      state: selectedAddress.state ?? "",
+      address: `${selectedAddress.street ?? ""}, ${selectedAddress.number ?? ""}${selectedAddress.complement ? `, ${selectedAddress.complement}` : ""}`,
+    } : {};
+    const requiredFields = [
+      ["fullName", "Nome completo"],
+      ["cpf", "CPF"],
+      ["phone", "Telefone / WhatsApp"],
+      ["email", "E-mail"],
+      ["cep", "CEP"],
+      ["city", "Cidade"],
+      ["state", "Estado"],
+      ["address", "Endereço completo"],
+    ] as const;
+    const valueFor = (name: string) => String(formData.get(name) ?? "").trim() || String(savedAddressValues[name as keyof typeof savedAddressValues] ?? "").trim();
+    const missing = requiredFields.filter(([name]) => !valueFor(name)).map(([, label]) => label);
     setErrors(missing);
     if (!missing.length) {
       setErrors([]);
-      const data = Object.fromEntries(new FormData(event.currentTarget).entries()) as unknown as OrderCustomer;
+      const data = Object.fromEntries([
+        ...requiredFields.map(([name]) => [name, valueFor(name)]),
+        ["notes", String(formData.get("notes") ?? "")],
+      ]) as unknown as OrderCustomer;
       const order = { number: createOrderNumber(), date: new Date().toISOString(), customer: data, items, subtotal, shipping: selectedShippingCost, total, status: "preparando" as const, ...(shippingQuoteId !== undefined ? { shippingQuoteId } : {}), notes };
       try {
         setIsSubmitting(true);
