@@ -1,35 +1,83 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Pencil, Plus, Trash2, Heart, Save } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowRight, Heart, LogOut, Package, Save, UserRound } from "lucide-react";
 import { SiteNavigation } from "../components/site-navigation";
-import { getCustomerAccount, updateProfile, saveAddress, deleteAddress, setDefaultAddress, toggleFavorite, listCustomerOrders, requestReturn, type Address, type Profile, type CustomerOrder } from "../lib/customer-account";
+import { supabase } from "../lib/supabase";
+import { getCustomerAccount, updateProfile, type Profile } from "../lib/customer-account";
 
 export const Route = createFileRoute("/conta")({ component: AccountPage });
 
-type AddressForm = Partial<Address>;
-
 function AccountPage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [favorites, setFavorites] = useState<Array<{ product_id: string; variant_id?: string | null }>>([]);
-  const [profileForm, setProfileForm] = useState({ full_name: "", phone: "" });
-  const [addressForm, setAddressForm] = useState<AddressForm>({});
-  const [editingId, setEditingId] = useState<string | undefined>();
-  const [message, setMessage] = useState("");
-  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [email, setEmail] = useState("");
+  const [form, setForm] = useState({ full_name: "", phone: "" });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [message, setMessage] = useState("");
 
-  async function load() { setLoading(true); try { const account = await getCustomerAccount(); const customerOrders = await listCustomerOrders(); setOrders(customerOrders); setProfile(account.profile); setAddresses(account.addresses); setFavorites(account.favorites); setProfileForm({ full_name: account.profile?.full_name ?? "", phone: account.profile?.phone ?? "" }); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível carregar sua conta."); } finally { setLoading(false); } }
-  useEffect(() => { void load(); }, []);
-  async function saveProfile() { try { await updateProfile(profileForm); setMessage("Perfil atualizado."); await load(); } catch { setMessage("Não foi possível atualizar o perfil."); } }
-  async function submitAddress(event: React.FormEvent) { event.preventDefault(); try { await saveAddress({ ...addressForm, id: editingId }); setAddressForm({}); setEditingId(undefined); setMessage("Endereço salvo."); await load(); } catch { setMessage("Não foi possível salvar o endereço."); } }
-  async function removeFavorite(item: { product_id: string; variant_id?: string | null }) { try { await toggleFavorite(item.product_id, item.variant_id); setFavorites((current) => current.filter((favorite) => favorite.product_id !== item.product_id)); } catch { setMessage("Não foi possível atualizar os favoritos."); } }
+  useEffect(() => {
+    let active = true;
+    async function loadAccount() {
+      try {
+        if (!supabase) throw new Error("O serviço de autenticação está indisponível.");
+        const { data: auth } = await supabase.auth.getUser();
+        if (!auth.user) {
+          await navigate({ to: "/login", replace: true });
+          return;
+        }
+        const account = await getCustomerAccount();
+        if (!active) return;
+        setProfile(account.profile);
+        setEmail(auth.user.email ?? "");
+        setForm({ full_name: account.profile?.full_name ?? auth.user.user_metadata?.full_name ?? "", phone: account.profile?.phone ?? "" });
+      } catch (error) {
+        if (active) setMessage(error instanceof Error ? error.message : "Não foi possível carregar sua conta.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void loadAccount();
+    return () => { active = false; };
+  }, [navigate]);
 
-  async function submitReturn(orderId: string) { const reason = window.prompt("Informe o motivo da devolução:"); if (!reason) return; try { await requestReturn(orderId, reason); setMessage("Solicitação de devolução enviada."); } catch { setMessage("Não foi possível solicitar a devolução."); } }
+  async function save() {
+    if (!form.full_name.trim()) { setMessage("Informe seu nome completo."); return; }
+    setSaving(true); setMessage("");
+    try {
+      const updated = await updateProfile({ full_name: form.full_name.trim(), phone: form.phone.trim() });
+      setProfile(updated);
+      setMessage("Dados atualizados com sucesso.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível salvar seus dados.");
+    } finally { setSaving(false); }
+  }
 
-  if (loading) return <div className="min-h-screen bg-background pb-16 text-foreground md:pb-0"><SiteNavigation /><main className="mx-auto max-w-6xl px-5 pb-24 pt-28 md:px-8 md:pt-32"><div className="animate-pulse space-y-4" aria-label="Carregando sua conta"><div className="h-10 w-2/3 rounded-lg bg-muted" /><div className="h-32 rounded-2xl bg-muted" /><div className="h-48 rounded-2xl bg-muted" /></div></main></div>;
-  return <div className="min-h-screen bg-background pb-16 text-foreground md:pb-0"><SiteNavigation /><main className="mx-auto max-w-6xl px-5 pb-24 pt-28 md:px-8 md:pt-32"><div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="mb-3 text-xs uppercase tracking-[0.3em] text-primary">Área do cliente</p><h1 className="text-5xl font-semibold tracking-tight md:text-7xl">Minha conta<span className="text-primary">.</span></h1></div><Link to="/" className="text-sm text-muted-foreground hover:text-primary">Voltar à loja</Link></div>{message && <p role="status" className="mb-6 rounded-xl border border-primary/30 bg-primary/10 p-3 text-sm text-primary">{message}</p>}<div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
-    <section className="rounded-2xl border border-border bg-card p-6"><h2 className="text-2xl font-semibold">Perfil</h2><div className="mt-6 space-y-4"><label className="block text-sm">Nome completo<input value={profileForm.full_name} onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/30" /></label><label className="block text-sm">Telefone<input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/30" /></label><button onClick={saveProfile} className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:shadow-[0_0_25px_color-mix(in_oklab,var(--primary)_45%,transparent)]"><Save size={16} />Salvar perfil</button></div></section>
-    <section className="rounded-2xl border border-border bg-card p-6"><div className="flex items-center justify-between"><h2 className="text-2xl font-semibold">Endereços</h2>{editingId && <button onClick={() => { setEditingId(undefined); setAddressForm({}); }} className="text-sm text-primary">Cancelar edição</button>}</div><form onSubmit={submitAddress} className="mt-5 grid gap-3 sm:grid-cols-2"><input aria-label="Nome do destinatário" placeholder="Destinatário" value={addressForm.recipient_name ?? ""} onChange={(e) => setAddressForm({ ...addressForm, recipient_name: e.target.value })} className="rounded-xl border border-input bg-background px-4 py-3 text-sm" required /><input aria-label="Rua" placeholder="Rua" value={addressForm.street ?? ""} onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })} className="rounded-xl border border-input bg-background px-4 py-3 text-sm" required /><input aria-label="Número" placeholder="Número" value={addressForm.number ?? ""} onChange={(e) => setAddressForm({ ...addressForm, number: e.target.value })} className="rounded-xl border border-input bg-background px-4 py-3 text-sm" required /><input aria-label="Cidade" placeholder="Cidade" value={addressForm.city ?? ""} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} className="rounded-xl border border-input bg-background px-4 py-3 text-sm" required /><input aria-label="Estado" placeholder="Estado" value={addressForm.state ?? ""} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} className="rounded-xl border border-input bg-background px-4 py-3 text-sm" required /><input aria-label="CEP" placeholder="CEP" value={addressForm.postal_code ?? ""} onChange={(e) => setAddressForm({ ...addressForm, postal_code: e.target.value })} className="rounded-xl border border-input bg-background px-4 py-3 text-sm" required /><label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={Boolean(addressForm.is_default)} onChange={(e) => setAddressForm({ ...addressForm, is_default: e.target.checked })} /> Definir como endereço padrão</label><button className="inline-flex w-fit items-center gap-2 rounded-full border border-primary px-5 py-3 text-sm text-primary hover:bg-primary hover:text-primary-foreground"><Plus size={16} />{editingId ? "Atualizar endereço" : "Adicionar endereço"}</button></form><div className="mt-6 space-y-3">{addresses.map((address) => <article key={address.id} className="rounded-xl border border-border p-4 text-sm"><div className="flex justify-between gap-3"><div><p className="font-medium">{address.recipient_name} {address.is_default && <span className="ml-2 text-xs text-primary">Padrão</span>}</p><p className="mt-1 text-muted-foreground">{address.street}, {address.number} · {address.city}/{address.state} · {address.postal_code}</p></div><div className="flex gap-3"><button aria-label="Editar endereço" onClick={() => { setEditingId(address.id); setAddressForm(address); }} className="text-muted-foreground hover:text-primary"><Pencil size={16} /></button><button aria-label="Excluir endereço" onClick={async () => { await deleteAddress(address.id); await load(); }} className="text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button></div></div>{!address.is_default && <button onClick={async () => { await setDefaultAddress(address.id); await load(); }} className="mt-3 text-xs text-primary">Definir como padrão</button>}</article>)}</div></section>
-  </div><section className="mt-8 rounded-2xl border border-border bg-card p-6"><h2 className="text-2xl font-semibold">Favoritos</h2>{favorites.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{favorites.map((favorite) => <article key={`${favorite.product_id}-${favorite.variant_id ?? ""}`} className="flex items-center justify-between rounded-xl border border-border p-4"><span className="truncate text-sm">Produto {favorite.product_id}</span><button aria-label="Remover favorito" onClick={() => removeFavorite(favorite)} className="text-primary hover:text-destructive"><Heart size={17} fill="currentColor" /></button></article>)}</div> : <p className="mt-4 text-sm text-muted-foreground">Você ainda não adicionou favoritos.</p>}</section><section className="mt-8 rounded-2xl border border-border bg-card p-6"><h2 className="text-2xl font-semibold">Pedidos</h2>{orders.length ? <div className="mt-5 space-y-4">{orders.map((order) => <article key={order.id} className="rounded-xl border border-border p-4"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="font-medium">Pedido {order.order_number ?? order.id}</p><p className="mt-1 text-sm text-muted-foreground">{order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR") : ""} · {order.order_items?.length ?? 0} itens</p>{order.order_items?.length ? <ul className="mt-3 space-y-1 text-sm text-muted-foreground">{order.order_items.map((item, index) => <li key={String(item.id ?? index)}>{String(item.product_name ?? item.name ?? item.title ?? "Item do pedido")} × {String(item.quantity ?? 1)}</li>)}</ul> : null}</div><div className="text-right text-sm"><p>Status: {order.status ?? "—"}</p><p className="text-muted-foreground">Pagamento: {order.payment_status ?? "—"} · Envio: {order.shipping_status ?? "—"}</p></div></div>{(order.shipment || order.shipments?.length) && <div className="mt-3 text-sm text-primary"><p>Rastreamento: {String((order.shipment ?? order.shipments?.[0])?.tracking_number ?? (order.shipment ?? order.shipments?.[0])?.tracking_code ?? "disponível")}</p><p className="text-muted-foreground">{String((order.shipment ?? order.shipments?.[0])?.carrier ?? "")} · {String((order.shipment ?? order.shipments?.[0])?.service ?? "")} · Status: {String((order.shipment ?? order.shipments?.[0])?.status ?? "")}</p></div>}<div className="mt-4 flex flex-wrap gap-3"><button onClick={() => submitReturn(order.id)} className="rounded-full border border-primary px-4 py-2 text-xs text-primary hover:bg-primary hover:text-primary-foreground">Solicitar devolução</button></div></article>)}</div> : <p className="mt-4 text-sm text-muted-foreground">Você ainda não possui pedidos.</p>}</section></main></div>;
+  async function logout() {
+    if (!supabase) return;
+    setSigningOut(true);
+    await supabase.auth.signOut();
+    await navigate({ to: "/login", replace: true });
+  }
+
+  if (loading) return <div className="min-h-screen bg-background text-foreground"><SiteNavigation /><main className="mx-auto max-w-6xl px-5 pb-24 pt-32 md:px-8"><div className="animate-pulse space-y-4"><div className="h-12 w-2/3 rounded-lg bg-muted" /><div className="h-64 rounded-2xl bg-muted" /></div></main></div>;
+
+  return <div className="min-h-screen bg-background pb-16 text-foreground md:pb-0"><SiteNavigation /><main className="mx-auto max-w-6xl px-5 pb-24 pt-28 md:px-8 md:pt-36">
+    <header className="mb-10 flex flex-col gap-6 border-b border-border pb-8 sm:flex-row sm:items-end sm:justify-between"><div><p className="mb-3 text-xs uppercase tracking-[0.3em] text-primary">Área exclusiva</p><h1 className="text-5xl font-semibold tracking-tight md:text-7xl">Minha conta<span className="text-primary">.</span></h1><p className="mt-4 text-sm text-muted-foreground">Olá, {profile?.full_name || form.full_name || "cliente"} · {email}</p></div><button type="button" onClick={logout} disabled={signingOut} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-primary px-5 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground disabled:opacity-60"><LogOut size={16} />{signingOut ? "Saindo..." : "Sair"}</button></header>
+    {message && <p role="status" className="mb-6 rounded-xl border border-primary/30 bg-primary/10 p-3 text-sm text-primary">{message}</p>}
+    <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+      <section className="rounded-2xl border border-border bg-card p-6 md:p-8"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/50 text-primary"><UserRound size={18} /></span><div><p className="text-xs uppercase tracking-[0.2em] text-primary">Perfil</p><h2 className="text-2xl font-semibold">Meus dados</h2></div></div><div className="mt-7 space-y-5"><label className="block text-sm font-medium">Nome completo<input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" /></label><label className="block text-sm font-medium">E-mail<input value={email} readOnly aria-readonly="true" className="mt-2 h-12 w-full cursor-not-allowed rounded-xl border border-input bg-muted px-4 text-muted-foreground outline-none" /></label><label className="block text-sm font-medium">Telefone<input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30" /></label><button type="button" onClick={save} disabled={saving} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-neon transition hover:brightness-110 disabled:opacity-60"><Save size={16} />{saving ? "Salvando..." : "Salvar dados"}</button></div></section>
+      <div className="grid gap-6 sm:grid-cols-3 lg:grid-cols-1">
+        <AccountLink icon={<Package size={20} />} title="Meus endereços" description="Seus endereços salvos aparecerão aqui." disabled />
+        <AccountLink icon={<Package size={20} />} title="Meus pedidos" description="Acompanhe suas compras e entregas." to="/conta" />
+        <AccountLink icon={<Heart size={20} />} title="Meus favoritos" description="Revise as peças que você guardou." to="/favoritos" />
+      </div>
+    </div>
+  </main></div>;
+}
+
+function AccountLink({ icon, title, description, to, disabled = false }: { icon: ReactNode; title: string; description: string; to?: "/conta" | "/favoritos"; disabled?: boolean }) {
+  const content = <><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/40 text-primary">{icon}</span><span className="min-w-0"><span className="block text-lg font-semibold">{title}</span><span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{description}</span></span><ArrowRight className="ml-auto shrink-0 text-primary" size={18} /></>;
+  return disabled ? <article className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 opacity-70">{content}</article> : <Link to={to!} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-neon-soft">{content}</Link>;
 }
