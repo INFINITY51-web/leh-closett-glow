@@ -54,10 +54,11 @@ function AccountPage() {
   }, [navigate]);
 
   async function save() {
-    if (!form.full_name.trim()) { setMessage("Informe seu nome completo."); return; }\n    if (!isValidCpf(form.cpf)) { setMessage("Informe um CPF válido."); return; }
+    if (!form.full_name.trim()) { setMessage("Informe seu nome completo."); return; }
+    if (!isValidCpf(form.cpf)) { setMessage("Informe um CPF válido."); return; }
     setSaving(true); setMessage("");
     try {
-      const updated = await updateProfile({ full_name: form.full_name.trim(), cpf: form.cpf.replace(/\\D/g, ""), phone: form.phone.trim() });
+      const updated = await updateProfile({ full_name: form.full_name.trim(), cpf: form.cpf.replace(/\D/g, ""), phone: form.phone.trim() });
       setProfile(updated);
       setMessage("Dados atualizados com sucesso.");
     } catch (error) {
