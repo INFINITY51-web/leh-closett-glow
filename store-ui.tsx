@@ -131,6 +131,7 @@ export function CheckoutPage() {
 }
 
 export function ConferencePage() {
+  const { syncSupabaseCart } = useCart();
   const [order, setOrder] = useState<any>(null);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [finalizeError, setFinalizeError] = useState("");
@@ -142,9 +143,12 @@ export function ConferencePage() {
     setFinalizeError("");
     setIsFinalizing(true);
     try {
+      const cartId = await syncSupabaseCart();
+      if (!cartId) throw new Error("Carrinho Supabase não encontrado.");
       const savedOrder = sessionStorage.getItem("leh-created-order");
       let created = savedOrder ? JSON.parse(savedOrder) : null;
       if (!created?.id || !created?.number || created.reviewNumber !== order.number) {
+        sessionStorage.setItem("leh-supabase-cart-id", cartId);
         created = await saveOrder(order);
         sessionStorage.setItem("leh-created-order", JSON.stringify({ id: created.id, number: created.number, total: created.total, reviewNumber: order.number }));
       }
