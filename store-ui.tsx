@@ -132,11 +132,11 @@ export function CheckoutPage() {
 
 export function ConferencePage() {
   const [order, setOrder] = useState<any>(null);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [finalizeError, setFinalizeError] = useState("");
   useEffect(() => { try { const saved = sessionStorage.getItem("leh-checkout-review"); if (saved) setOrder(JSON.parse(saved)); } catch { setOrder(null); } }, []);
   if (!order) return <StoreShell><main className="mx-auto max-w-4xl px-5 pb-24 pt-36"><div className="rounded-3xl border border-border bg-card p-10 text-center"><h1 className="text-3xl font-semibold">Conferência indisponível.</h1><p className="mt-3 text-sm text-muted-foreground">Volte ao checkout para revisar seu pedido.</p><Link to="/checkout" className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">Voltar ao checkout</Link></div></main></StoreShell>;
   const customer = order.customer ?? {};
-  const [isFinalizing, setIsFinalizing] = useState(false);
-  const [finalizeError, setFinalizeError] = useState("");
   async function finalizePurchase() {
     if (isFinalizing) return;
     setFinalizeError("");
