@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Check, MapPin, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SiteNavigation } from "../components/site-navigation";
+import { supabase } from "../lib/supabase";
 import { getCustomerAddresses, saveAddress, type Address } from "../lib/customer-account";
 
 export const Route = createFileRoute("/enderecos")({ component: AddressesPage });
@@ -19,7 +20,18 @@ function AddressesPage() {
 
   useEffect(() => {
     let active = true;
-    getCustomerAddresses().then((items) => { if (active) setAddresses(items); }).catch(() => { void navigate({ to: "/login", replace: true }); }).finally(() => { if (active) setLoading(false); });
+    getCustomerAddresses()
+      .then((items) => { if (active) setAddresses(items); })
+      .catch(async (error) => {
+        if (!active) return;
+        const session = supabase ? (await supabase.auth.getSession()).data.session : null;
+        if (!session) {
+          void navigate({ to: "/login", replace: true });
+          return;
+        }
+        setMessage(error instanceof Error ? error.message : "Não foi possível carregar seus endereços.");
+      })
+      .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [navigate]);
 
