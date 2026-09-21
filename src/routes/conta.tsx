@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, Heart, LogOut, Package, Save, UserRound } from "lucide-react";
 import { SiteNavigation } from "../components/site-navigation";
 import { supabase } from "../lib/supabase";
-import { getCustomerAccount, updateProfile, type Profile } from "../lib/customer-account";
+import { updateProfile, type Profile } from "../lib/customer-account";
 
 export const Route = createFileRoute("/conta")({ component: AccountPage });
 
@@ -27,11 +27,18 @@ function AccountPage() {
           await navigate({ to: "/login", replace: true });
           return;
         }
-        const account = await getCustomerAccount();
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone, role, is_active")
+          .eq("id", auth.user.id)
+          .maybeSingle();
+        if (profileError) throw profileError;
         if (!active) return;
-        setProfile(account.profile);
+        const authName = typeof auth.user.user_metadata?.["full_name"] === "string" ? auth.user.user_metadata["full_name"] : "";
+        const loadedProfile = profileData as Profile | null;
+        setProfile(loadedProfile);
         setEmail(auth.user.email ?? "");
-        setForm({ full_name: account.profile?.full_name ?? auth.user.user_metadata?.["full_name"] ?? "", phone: account.profile?.phone ?? "" });
+        setForm({ full_name: loadedProfile?.full_name?.trim() || authName, phone: loadedProfile?.phone ?? "" });
       } catch (error) {
         if (active) setMessage(error instanceof Error ? error.message : "Não foi possível carregar sua conta.");
       } finally {
