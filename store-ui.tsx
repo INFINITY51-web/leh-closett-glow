@@ -176,8 +176,10 @@ function ConferenceReview() {
     setFinalizeError("");
     setIsFinalizing(true);
     try {
+      const hasRealProducts = (order.items ?? []).every((item: any) => item.variantId);
+      if (!hasRealProducts) throw new Error("Estes produtos são apenas exemplos de demonstração e ainda não estão cadastrados no estoque da loja, por isso o pagamento não pode ser aberto. Cadastre os produtos no painel administrativo para vender de verdade.");
       const cartId = await syncSupabaseCart();
-      if (!cartId) throw new Error("Carrinho Supabase não encontrado.");
+      if (!cartId) throw new Error("Não foi possível vincular seu carrinho à sua conta. Entre novamente e tente outra vez.");
       const savedOrder = sessionStorage.getItem("leh-created-order");
       let created = savedOrder ? JSON.parse(savedOrder) : null;
       if (!created?.id || created.reviewNumber !== order.number) {
