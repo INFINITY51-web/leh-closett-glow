@@ -22,25 +22,25 @@ function AccountPage() {
     async function loadAccount() {
       try {
         if (!supabase) throw new Error("O serviço de autenticação está indisponível.");
-        const { data: auth } = await supabase.auth.getUser();
-        if (!auth.user) {
+        const sessionResult = await supabase.auth.getSession();
+        const user = sessionResult.data.session?.user ?? (await supabase.auth.getUser()).data.user;
+        if (!user) {
           await navigate({ to: "/login", replace: true });
           return;
         }
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("id, full_name, phone, role, is_active")
-          .eq("id", auth.user.id)
+          .eq("id", user.id)
           .maybeSingle();
-        if (profileError) throw profileError;
         if (!active) return;
-        const authName = typeof auth.user.user_metadata?.["full_name"] === "string" ? auth.user.user_metadata["full_name"] : "";
+        const authName = typeof user.user_metadata?.["full_name"] === "string" ? user.user_metadata["full_name"] : "";
         const loadedProfile = profileData as Profile | null;
         setProfile(loadedProfile);
-        setEmail(auth.user.email ?? "");
+        setEmail(user.email ?? "");
         setForm({ full_name: loadedProfile?.full_name?.trim() || authName, phone: loadedProfile?.phone ?? "" });
       } catch (error) {
-        if (active) setMessage(error instanceof Error ? error.message : "Não foi possível carregar sua conta.");
+        if (active) setMessage(error instanceof Error ? error.message : "Não foi possível validar seu acesso.");
       } finally {
         if (active) setLoading(false);
       }
