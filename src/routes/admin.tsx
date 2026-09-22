@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useLocation, useNavigate } fro
 import { useEffect, useState } from "react";
 import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-auth";
 import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
-import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProductVariant, updateAdminProductPrice, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
+import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProductVariant, updateAdminProductPrice, updateAdminProductPromotion, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -45,7 +45,7 @@ function AdminRouteLayout() {
 function AdminDashboard({ session }: { session: AdminSession }) {
   const navigate = useNavigate();
   const [section, setSection] = useState("Visão geral");
-  const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços">("Produtos");
+  const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções">("Produtos");
 
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
@@ -82,13 +82,23 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   </div>;
 }
 
-function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços") => void }) {
+function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções") => void }) {
   return <div className="mt-8 space-y-6">
     <div className="flex gap-2 border-b border-border">
-      {(["Produtos", "Categorias", "Imagens", "Variantes", "Preços"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
+      {(["Produtos", "Categorias", "Imagens", "Variantes", "Preços", "Promoções"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
     </div>
-    {area === "Categorias" ? <CategoriesManager /> : area === "Imagens" ? <ProductImagesManager /> : area === "Variantes" ? <ProductVariantsManager /> : area === "Preços" ? <ProductPricesManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
+    {area === "Categorias" ? <CategoriesManager /> : area === "Imagens" ? <ProductImagesManager /> : area === "Variantes" ? <ProductVariantsManager /> : area === "Preços" ? <ProductPricesManager /> : area === "Promoções" ? <ProductPromotionsManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
   </div>;
+}
+
+function ProductPromotionsManager() {
+  const [products, setProducts] = useState<AdminProduct[]>([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState<string | null>(null); const [error, setError] = useState("");
+  async function load() { try { setLoading(true); setProducts(await listAdminProducts()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar as promoções."); } finally { setLoading(false); } }
+  useEffect(() => { void load(); }, []);
+  const promotions = products.filter((product) => product.compare_at_price != null && product.compare_at_price > product.price);
+  async function toggle(product: AdminProduct, active: boolean) { try { setSaving(product.id); await updateAdminProductPromotion({ id: product.id, active }); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível atualizar a promoção."); } finally { setSaving(null); } }
+  async function remove(product: AdminProduct) { if (!window.confirm("Excluir esta promoção?")) return; try { setSaving(product.id); await updateAdminProductPromotion({ id: product.id, clear: true }); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível excluir a promoção."); } finally { setSaving(null); } }
+  return <div className="space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Preço original</th><th className="p-4">Preço promocional</th><th className="p-4">Período</th><th className="p-4">Status</th><th className="p-4">Ações</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando promoções...</td></tr> : promotions.length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhuma promoção cadastrada.</td></tr> : promotions.map((product) => <tr key={product.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{product.name}</td><td className="p-4">R$ {product.compare_at_price?.toFixed(2)}</td><td className="p-4 text-primary">R$ {product.price.toFixed(2)}</td><td className="p-4 text-muted-foreground">Contínuo</td><td className="p-4">{product.active ? "Ativa" : "Inativa"}</td><td className="space-x-3 p-4"><button type="button" disabled={saving === product.id} onClick={() => void toggle(product, !product.active)} className="text-primary hover:underline">{product.active ? "Desativar" : "Ativar"}</button><button type="button" disabled={saving === product.id} onClick={() => void remove(product)} className="text-destructive hover:underline">Excluir</button></td></tr>)}</tbody></table></div></div>;
 }
 
 function ProductPricesManager() {
