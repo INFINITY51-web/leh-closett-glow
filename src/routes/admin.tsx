@@ -6,6 +6,7 @@ import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, 
 import { listInventory, listInventoryMovements, listInventoryReservations, updateInventoryMinimum, type InventoryMovement, type InventoryReservation, type InventoryRow } from "../lib/admin-inventory";
 import { getAdminOrder, listAdminOrders, updateAdminOrderStatus } from "../lib/orders";
 import { supabase } from "../lib/supabase";
+import { AdminSuppliers } from "../components/admin-suppliers";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -127,6 +128,10 @@ function OrdersManager() {
 type Supplier = { id: string; name: string; country: string | null; city: string | null; state: string | null; contact_name: string | null; contact_email: string | null; contact_phone: string | null; status: string; integration_status: string };
 
 function SuppliersManager() {
+  return <AdminSuppliers />;
+}
+
+function SuppliersManagerLegacy() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
