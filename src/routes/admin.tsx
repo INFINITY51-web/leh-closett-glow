@@ -76,7 +76,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
       <main key={section} className="min-w-0">
         <p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Painel administrativo</p>
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{section}</h1>
-        {section === "Visão geral" ? <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Acesso administrativo</p><p className="mt-3 text-lg font-medium">Painel ativo</p></article><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Conta conectada</p><p className="mt-3 truncate text-lg font-medium">{session.email}</p></article></div> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
+        {section === "Visão geral" ? <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Acesso administrativo</p><p className="mt-3 text-lg font-medium">Painel ativo</p></article><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Conta conectada</p><p className="mt-3 truncate text-lg font-medium">{session.email}</p></article></div> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
       </main>
     </div>
   </div>;
@@ -102,6 +102,21 @@ function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" 
     </nav>
     <div key={area}>{renderArea()}</div>
   </div>;
+}
+
+function InventoryManager() {
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  async function load() { try { setLoading(true); setError(""); setProducts(await listAdminProducts()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar o estoque."); } finally { setLoading(false); } }
+  useEffect(() => { void load(); }, []);
+  async function updateStock(product: AdminProduct, variant: AdminProduct["product_variants"][number], value: string) {
+    const quantity = Number(value); if (!Number.isInteger(quantity) || quantity < 0) return;
+    try { setSaving(variant.id); await saveAdminProductVariant({ id: variant.id, product_id: product.id, sku: variant.sku, size: variant.size, color: variant.color, price_override: variant.price_override, stock_quantity: quantity, active: variant.active }); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível alterar o estoque."); } finally { setSaving(null); }
+  }
+  return <div className="mt-8 space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Variante</th><th className="p-4">Estoque atual</th><th className="p-4">Status</th><th className="p-4">Estoque baixo</th><th className="p-4">Ação</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando estoque...</td></tr> : products.flatMap((product) => product.product_variants.map((variant) => { const low = variant.stock_quantity <= 5; return <tr key={variant.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{product.name}</td><td className="p-4">{variant.sku} · {variant.size || "Sem tamanho"} · {variant.color || "Sem cor"}</td><td className="p-4"><input aria-label={`Estoque de ${variant.sku}`} type="number" min="0" step="1" defaultValue={variant.stock_quantity} onBlur={(event) => void updateStock(product, variant, event.target.value)} className="w-28 rounded-lg border border-input bg-background px-3 py-2" /></td><td className="p-4">{variant.active ? "Ativo" : "Inativo"}</td><td className={`p-4 font-medium ${low ? "text-destructive" : "text-primary"}`}>{low ? "Sim" : "Não"}</td><td className="p-4 text-muted-foreground">{saving === variant.id ? "Salvando..." : "Altere e saia do campo"}</td></tr>; }))}</tbody></table>{!loading && products.every((product) => product.product_variants.length === 0) && <p className="p-8 text-center text-muted-foreground">Nenhuma variante cadastrada para controle de estoque.</p>}</div></div>;
 }
 
 function ProductPromotionsManager() {
