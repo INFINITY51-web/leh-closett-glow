@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { signInAdmin } from "../lib/admin-auth";
@@ -6,6 +6,7 @@ import { signInAdmin } from "../lib/admin-auth";
 export const Route = createFileRoute("/admin/login")({ component: AdminLogin });
 
 function AdminLogin() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,14 @@ function AdminLogin() {
     event.preventDefault();
     setError("");
     setLoading(true);
-    try { await signInAdmin(email, password); } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível autenticar."); } finally { setLoading(false); }
+    try {
+      await signInAdmin(email.trim(), password);
+      await navigate({ to: "/admin", replace: true });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível autenticar.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return <main className="flex min-h-screen items-center justify-center bg-background px-5 py-12 text-foreground">
