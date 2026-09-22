@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useLocation, useNavigate } fro
 import { useEffect, useState } from "react";
 import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-auth";
 import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
-import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProductVariant, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
+import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProductVariant, updateAdminProductPrice, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -45,7 +45,7 @@ function AdminRouteLayout() {
 function AdminDashboard({ session }: { session: AdminSession }) {
   const navigate = useNavigate();
   const [section, setSection] = useState("Visão geral");
-  const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes">("Produtos");
+  const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços">("Produtos");
 
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
@@ -82,13 +82,28 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   </div>;
 }
 
-function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens" | "Variantes"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens" | "Variantes") => void }) {
+function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços") => void }) {
   return <div className="mt-8 space-y-6">
     <div className="flex gap-2 border-b border-border">
-      {(["Produtos", "Categorias", "Imagens", "Variantes"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
+      {(["Produtos", "Categorias", "Imagens", "Variantes", "Preços"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
     </div>
-    {area === "Categorias" ? <CategoriesManager /> : area === "Imagens" ? <ProductImagesManager /> : area === "Variantes" ? <ProductVariantsManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
+    {area === "Categorias" ? <CategoriesManager /> : area === "Imagens" ? <ProductImagesManager /> : area === "Variantes" ? <ProductVariantsManager /> : area === "Preços" ? <ProductPricesManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
   </div>;
+}
+
+function ProductPricesManager() {
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [productId, setProductId] = useState("");
+  const [price, setPrice] = useState("");
+  const [compareAtPrice, setCompareAtPrice] = useState("");
+  const [variantPrices, setVariantPrices] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
+  async function load() { try { setLoading(true); setProducts(await listAdminProducts()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os preços."); } finally { setLoading(false); } }
+  useEffect(() => { void load(); }, []);
+  const product = products.find((item) => item.id === productId);
+  function selectProduct(id: string) { const item = products.find((entry) => entry.id === id); setProductId(id); setPrice(item ? String(item.price) : ""); setCompareAtPrice(item?.compare_at_price == null ? "" : String(item.compare_at_price)); setVariantPrices(Object.fromEntries((item?.product_variants ?? []).map((variant) => [variant.id, variant.price_override == null ? "" : String(variant.price_override)]))); }
+  async function submit(event: React.FormEvent) { event.preventDefault(); if (!product) return; try { setSaving(true); setError(""); await updateAdminProductPrice({ id: product.id, price: Number(price), compare_at_price: compareAtPrice ? Number(compareAtPrice) : null, variantPrices: product.product_variants.map((variant) => ({ id: variant.id, price_override: variantPrices[variant.id] ? Number(variantPrices[variant.id]) : null })) }); await load(); selectProduct(product.id); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível salvar os preços."); } finally { setSaving(false); } }
+  return <div className="space-y-6"><form onSubmit={submit} className="space-y-5 rounded-xl border border-border bg-card p-5"><label className="block text-sm">Produto<select value={productId} onChange={(event) => selectProduct(event.target.value)} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2"><option value="">Selecione</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{loading ? <p className="text-sm text-muted-foreground">Carregando preços...</p> : product && <><div className="grid gap-4 md:grid-cols-2"><label className="text-sm">Preço atual<input required type="number" min="0" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><label className="text-sm">Preço comparativo<input type="number" min="0" step="0.01" value={compareAtPrice} onChange={(event) => setCompareAtPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label></div>{product.product_variants.length > 0 && <div className="space-y-3"><h2 className="font-medium">Preços das variantes</h2>{product.product_variants.map((variant) => <label key={variant.id} className="flex items-center justify-between gap-4 border-b border-border pb-3 text-sm"><span>{variant.sku} · {variant.size || "Sem tamanho"} · {variant.color || "Sem cor"}</span><input type="number" min="0" step="0.01" placeholder="Usa preço do produto" value={variantPrices[variant.id] ?? ""} onChange={(event) => setVariantPrices({ ...variantPrices, [variant.id]: event.target.value })} className="w-44 rounded-lg border border-input bg-background px-3 py-2" /></label>)}</div>}<button disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{saving ? "Salvando..." : "Salvar alterações"}</button></>}</form>{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}</div>;
 }
 
 function ProductVariantsManager() {
