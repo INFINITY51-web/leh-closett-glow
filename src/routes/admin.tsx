@@ -4,6 +4,7 @@ import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-a
 import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
 import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProductVariant, updateAdminProductPrice, updateAdminProductPromotion, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
 import { listInventory, listInventoryMovements, listInventoryReservations, updateInventoryMinimum, type InventoryMovement, type InventoryReservation, type InventoryRow } from "../lib/admin-inventory";
+import { getAdminOrder, listAdminOrders } from "../lib/orders";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -78,7 +79,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
       <main key={section} className="min-w-0">
         <p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Painel administrativo</p>
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{section}</h1>
-        {section === "Visão geral" ? <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Acesso administrativo</p><p className="mt-3 text-lg font-medium">Painel ativo</p></article><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Conta conectada</p><p className="mt-3 truncate text-lg font-medium">{session.email}</p></article></div> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
+        {section === "Visão geral" ? <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Acesso administrativo</p><p className="mt-3 text-lg font-medium">Painel ativo</p></article><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Conta conectada</p><p className="mt-3 truncate text-lg font-medium">{session.email}</p></article></div> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Pedidos" ? <OrdersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
       </main>
     </div>
   </div>;
@@ -104,6 +105,18 @@ function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" 
     </nav>
     <div key={area}>{renderArea()}</div>
   </div>;
+}
+
+function OrdersManager() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => { void (async () => { try { setOrders(await listAdminOrders()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os pedidos."); } finally { setLoading(false); } })(); }, []);
+  async function openOrder(id: string) { try { setError(""); setSelected(await getAdminOrder(id)); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os detalhes."); } }
+  const customer = (order: any) => order.shipping_address?.full_name || order.customer_name || order.customer_email || "Cliente não identificado";
+  const payment = (order: any) => order.payment_status || order.payment_method || "—";
+  return <div className="mt-8 space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}{selected && <section className="rounded-xl border border-primary/40 bg-card p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.2em] text-primary">Detalhes do pedido</p><h2 className="mt-2 text-2xl font-semibold">{selected.order_number || selected.number}</h2></div><button type="button" onClick={() => setSelected(null)} className="text-sm text-muted-foreground hover:text-foreground">Fechar</button></div><div className="mt-5 grid gap-3 text-sm md:grid-cols-2"><p><span className="text-muted-foreground">Cliente:</span> {customer(selected)}</p><p><span className="text-muted-foreground">Status:</span> {selected.status || "—"}</p><p><span className="text-muted-foreground">Pagamento:</span> {payment(selected)}</p><p><span className="text-muted-foreground">Total:</span> R$ {Number(selected.total || 0).toFixed(2)}</p></div><div className="mt-5 border-t border-border pt-4"><h3 className="font-medium">Itens</h3>{(selected.order_items || []).map((item: any) => <p key={item.id} className="mt-2 text-sm text-muted-foreground">{item.product_name || item.name || "Produto"} · {item.quantity} × R$ {Number(item.unit_price || item.price || 0).toFixed(2)}</p>)}</div></section>}<div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Número do pedido</th><th className="p-4">Cliente</th><th className="p-4">Data</th><th className="p-4">Status</th><th className="p-4">Pagamento</th><th className="p-4">Total</th><th className="p-4">Ação</th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Carregando pedidos...</td></tr> : orders.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr> : orders.map((order) => <tr key={order.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{order.order_number || order.number || order.id}</td><td className="p-4">{customer(order)}</td><td className="p-4 text-muted-foreground">{order.created_at ? new Date(order.created_at).toLocaleString("pt-BR") : "—"}</td><td className="p-4">{order.status || "—"}</td><td className="p-4">{payment(order)}</td><td className="p-4">R$ {Number(order.total || 0).toFixed(2)}</td><td className="p-4"><button type="button" onClick={() => void openOrder(order.id)} className="text-primary hover:underline">Ver detalhes</button></td></tr>)}</tbody></table></div></div>;
 }
 
 function InventoryArea({ area, onAreaChange }: { area: "Estoque" | "Movimentações" | "Reservas" | "Alertas"; onAreaChange: (area: "Estoque" | "Movimentações" | "Reservas" | "Alertas") => void }) {
