@@ -22,6 +22,7 @@
   --font-display: "Playfair Display", serif;
   --font-logo: "Syncopate", sans-serif;
   --font-sans: "Montserrat", sans-serif;
+  --site-font-family: "Montserrat";
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -140,7 +141,7 @@
 
 @layer base {
   html { scroll-behavior: smooth; background: var(--background); }
-  body { font-family: 'Montserrat', sans-serif; min-width: 320px; overflow-x: hidden; letter-spacing: 0; }
+  body { font-family: var(--site-font-family), sans-serif; min-width: 320px; overflow-x: hidden; letter-spacing: 0; }
   ::selection { background: var(--primary); color: var(--primary-foreground); }
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: var(--background); }

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import appCss from "../styles.css?url";
 import { CartProvider } from "../../cart-context";
 import "../lib/supabase";
@@ -15,7 +15,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) { return <html lang="pt-BR"><head><HeadContent /></head><body>{children}<Scripts /></body></html>; }
+function ThemePersistence() { useEffect(() => { try { const raw = localStorage.getItem("leh-closett-appearance"); if (!raw) return; const settings = JSON.parse(raw) as Record<string, string>; const root = document.documentElement; if (settings.primary) root.style.setProperty("--primary", settings.primary); if (settings.accent) root.style.setProperty("--accent", settings.accent); if (settings.background) root.style.setProperty("--background", settings.background); if (settings.text) root.style.setProperty("--foreground", settings.text); if (settings.font) root.style.setProperty("--site-font-family", settings.font); } catch { /* Mantém os tokens padrão quando não houver configuração válida. */ } }, []); return null; }
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  return <QueryClientProvider client={queryClient}><CartProvider><Outlet /></CartProvider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><CartProvider><ThemePersistence /><Outlet /></CartProvider></QueryClientProvider>;
 }
