@@ -27,7 +27,8 @@ function Index() {
   const [homeProducts, setHomeProducts] = useState<typeof products>([]);
   const [homeLoading, setHomeLoading] = useState(true);
   const [heroSlide, setHeroSlide] = useState(0);
-  useEffect(() => { fetchMappedPublishedProducts().then(setHomeProducts).catch(() => setHomeProducts([])).finally(() => setHomeLoading(false)); }, []);
+  const [banners, setBanners] = useState<Array<{ id: string; image_url: string | null; title: string | null; text: string | null; link_url: string | null; sort_order: number }>>([]);
+  useEffect(() => { fetchMappedPublishedProducts().then(setHomeProducts).catch(() => setHomeProducts([])).finally(() => setHomeLoading(false)); supabase?.from("banners").select("id, image_url, title, text, link_url, sort_order").eq("active", true).order("sort_order").then(({ data }) => setBanners((data ?? []) as Array<{ id: string; image_url: string | null; title: string | null; text: string | null; link_url: string | null; sort_order: number }>)); }, []);
   const heroSlides = [
     { eyebrow: "Nova coleção", title: "Brilhe com", accent: "atitude.", description: "A nova coleção que redefine o brilho urbano da mulher moderna." },
     { eyebrow: "Glow essentials", title: "Sua presença.", accent: "Sua luz.", description: "Peças selecionadas para iluminar cada momento." },
@@ -38,8 +39,9 @@ function Index() {
       .then(({ data }) => setHomeCategories((data ?? []) as Array<{ id: string; name: string; image_url: string | null }>));
   }, []);
   const campaignItems = homeProducts.filter((product) => product.images[0]).slice(0, 2);
+  const activeBanner = banners[heroSlide];
   const activeHero = heroSlides[heroSlide] ?? heroSlides[0]!;
-  const heroImage = homeProducts[heroSlide]?.images?.[0] || products[heroSlide]?.images?.[0] || products[0]?.images?.[0];
+  const heroImage = activeBanner?.image_url || homeProducts[heroSlide]?.images?.[0] || products[heroSlide]?.images?.[0] || products[0]?.images?.[0];
 
   return (
     <div className="min-h-screen overflow-hidden bg-background pb-16 text-foreground md:pb-0">
@@ -53,10 +55,10 @@ function Index() {
           <div className="relative mx-auto flex min-h-[calc(100svh-4.5rem)] max-w-7xl items-end px-6 pb-20 pt-24 md:min-h-[min(840px,calc(100vh-5rem))] md:items-center md:px-10 md:pb-16">
             <div className="max-w-2xl">
               <p className="mb-4 border-l-2 border-primary pl-3 text-[10px] font-bold uppercase tracking-[0.3em] text-primary drop-shadow-[0_0_8px_color-mix(in_oklab,var(--primary)_80%,transparent)]">{activeHero.eyebrow}</p>
-              <h1 className="font-display text-5xl font-bold leading-[0.92] text-foreground sm:text-7xl md:text-8xl">{activeHero.title}<br /><span className="font-medium italic text-primary drop-shadow-[0_0_18px_color-mix(in_oklab,var(--primary)_45%,transparent)]">{activeHero.accent}</span></h1>
-              <p className="mt-5 max-w-sm text-sm leading-relaxed text-foreground/75 md:text-base">{activeHero.description}</p>
+              <h1 className="font-display text-5xl font-bold leading-[0.92] text-foreground sm:text-7xl md:text-8xl">{activeBanner?.title ?? activeHero.title}<br /><span className="font-medium italic text-primary drop-shadow-[0_0_18px_color-mix(in_oklab,var(--primary)_45%,transparent)]">{activeBanner ? "" : activeHero.accent}</span></h1>
+              <p className="mt-5 max-w-sm text-sm leading-relaxed text-foreground/75 md:text-base">{activeBanner?.text ?? activeHero.description}</p>
               <div className="mt-8 flex flex-wrap gap-3"><a href="#novidades" className="group inline-flex min-h-12 items-center justify-center gap-3 bg-primary px-7 py-3 text-[11px] font-bold uppercase tracking-[0.18em] text-primary-foreground shadow-neon transition hover:brightness-110">Ver coleção <ArrowRight size={16} className="transition group-hover:translate-x-1" /></a><a href="#colecao-em-destaque" className="inline-flex min-h-12 items-center justify-center border border-foreground/25 bg-background/20 px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground backdrop-blur-md transition hover:border-primary hover:text-primary">Novidades</a></div>
-              <div className="mt-8 flex items-center gap-3"><button type="button" aria-label="Banner anterior" onClick={() => setHeroSlide((heroSlide + heroSlides.length - 1) % heroSlides.length)} className="rounded-full border border-foreground/20 bg-background/25 p-2 text-foreground backdrop-blur-md transition hover:border-primary hover:text-primary"><ArrowLeft size={14} /></button>{heroSlides.map((slide, index) => <button type="button" key={slide.eyebrow} aria-label={`Ir para banner ${index + 1}`} onClick={() => setHeroSlide(index)} className={`h-0.5 transition-all ${heroSlide === index ? "w-8 bg-primary shadow-neon" : "w-4 bg-foreground/25"}`} />)}<button type="button" aria-label="Próximo banner" onClick={() => setHeroSlide((heroSlide + 1) % heroSlides.length)} className="rounded-full border border-foreground/20 bg-background/25 p-2 text-foreground backdrop-blur-md transition hover:border-primary hover:text-primary"><ArrowRight size={14} /></button></div>
+              <div className="mt-8 flex items-center gap-3"><button type="button" aria-label="Banner anterior" onClick={() => setHeroSlide((heroSlide + (banners.length || heroSlides.length) - 1) % (banners.length || heroSlides.length))} className="rounded-full border border-foreground/20 bg-background/25 p-2 text-foreground backdrop-blur-md transition hover:border-primary hover:text-primary"><ArrowLeft size={14} /></button>{(banners.length ? banners : heroSlides).map((slide, index) => <button type="button" key={"id" in slide ? slide.id : slide.eyebrow} aria-label={`Ir para banner ${index + 1}`} onClick={() => setHeroSlide(index)} className={`h-0.5 transition-all ${heroSlide === index ? "w-8 bg-primary shadow-neon" : "w-4 bg-foreground/25"}`} />)}<button type="button" aria-label="Próximo banner" onClick={() => setHeroSlide((heroSlide + 1) % (banners.length || heroSlides.length))} className="rounded-full border border-foreground/20 bg-background/25 p-2 text-foreground backdrop-blur-md transition hover:border-primary hover:text-primary"><ArrowRight size={14} /></button></div>
             </div>
           </div>
           <div className="absolute bottom-0 inset-x-0 border-t border-foreground/10 bg-background/55 px-4 py-3 text-center text-[9px] font-medium uppercase tracking-[0.18em] text-foreground/70 backdrop-blur-xl"><span className="text-primary">Frete grátis</span> acima de R$ 299 · compra segura</div>
