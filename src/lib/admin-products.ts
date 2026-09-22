@@ -66,6 +66,20 @@ export async function removeAdminProductImage(imageId: string, imageUrl: string)
   if (path) await supabase.storage.from("product-images").remove([decodeURIComponent(path)]);
 }
 
+export async function saveAdminProductVariant(input: { id?: string; product_id: string; sku: string; size: string | null; color: string | null; price_override: number | null; stock_quantity: number; active: boolean }) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const payload = { product_id: input.product_id, sku: input.sku, size: input.size, color: input.color, price_override: input.price_override, stock_quantity: input.stock_quantity, active: input.active };
+  const result = input.id ? await supabase.from("product_variants").update(payload).eq("id", input.id).select("id, sku, size, color, price_override, stock_quantity, active").single() : await supabase.from("product_variants").insert(payload).select("id, sku, size, color, price_override, stock_quantity, active").single();
+  if (result.error) throw result.error;
+  return result.data as AdminProduct["product_variants"][number];
+}
+
+export async function removeAdminProductVariant(id: string) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const { error } = await supabase.from("product_variants").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function toggleAdminProduct(id: string, field: "active" | "featured", value: boolean) {
   if (!supabase) throw new Error("Supabase não configurado.");
   const { error } = await supabase.from("products").update({ [field]: value }).eq("id", id);

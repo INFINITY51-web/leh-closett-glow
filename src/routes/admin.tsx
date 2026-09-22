@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useLocation, useNavigate } fro
 import { useEffect, useState } from "react";
 import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-auth";
 import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
-import { listAdminProducts, removeAdminProductImage, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
+import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProductVariant, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -45,7 +45,7 @@ function AdminRouteLayout() {
 function AdminDashboard({ session }: { session: AdminSession }) {
   const navigate = useNavigate();
   const [section, setSection] = useState("Visão geral");
-  const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens">("Produtos");
+  const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes">("Produtos");
 
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
@@ -82,13 +82,21 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   </div>;
 }
 
-function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens") => void }) {
+function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens" | "Variantes"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens" | "Variantes") => void }) {
   return <div className="mt-8 space-y-6">
     <div className="flex gap-2 border-b border-border">
-      {(["Produtos", "Categorias", "Imagens"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
+      {(["Produtos", "Categorias", "Imagens", "Variantes"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
     </div>
-    {area === "Categorias" ? <CategoriesManager /> : area === "Imagens" ? <ProductImagesManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
+    {area === "Categorias" ? <CategoriesManager /> : area === "Imagens" ? <ProductImagesManager /> : area === "Variantes" ? <ProductVariantsManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
   </div>;
+}
+
+function ProductVariantsManager() {
+  const [products, setProducts] = useState<AdminProduct[]>([]); const [productId, setProductId] = useState(""); const [editingId, setEditingId] = useState<string>(); const [form, setForm] = useState({ sku: "", size: "", color: "", price_override: "", stock_quantity: "0", active: true }); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
+  async function load() { try { setLoading(true); setProducts(await listAdminProducts()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar as variantes."); } finally { setLoading(false); } } useEffect(() => { void load(); }, []);
+  const product = products.find((item) => item.id === productId); const reset = () => { setEditingId(undefined); setForm({ sku: "", size: "", color: "", price_override: "", stock_quantity: "0", active: true }); };
+  async function submit(event: React.FormEvent) { event.preventDefault(); if (!productId || !form.sku.trim()) return; try { setSaving(true); await saveAdminProductVariant({ id: editingId, product_id: productId, sku: form.sku.trim(), size: form.size || null, color: form.color || null, price_override: form.price_override ? Number(form.price_override) : null, stock_quantity: Number(form.stock_quantity), active: form.active }); reset(); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível salvar a variante."); } finally { setSaving(false); } }
+  return <div className="space-y-6"><form onSubmit={submit} className="grid gap-3 rounded-xl border border-border bg-card p-5 md:grid-cols-4"><label className="text-sm md:col-span-2">Produto<select value={productId} onChange={(e) => { setProductId(e.target.value); reset(); }} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2"><option value="">Selecione</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="text-sm">SKU<input required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><label className="text-sm">Tamanho<input value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><label className="text-sm">Cor<input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><label className="text-sm">Preço especial<input type="number" step="0.01" value={form.price_override} onChange={(e) => setForm({ ...form, price_override: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><label className="text-sm">Estoque<input type="number" value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><div className="flex items-end gap-3"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />Ativa</label><button disabled={saving || !productId} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{saving ? "Salvando..." : editingId ? "Atualizar" : "Criar"}</button></div></form>{error && <p className="text-sm text-destructive">{error}</p>}<div className="rounded-xl border border-border bg-card p-5">{loading ? "Carregando variantes..." : !product ? "Selecione um produto." : product.product_variants.length === 0 ? "Nenhuma variante cadastrada." : <div className="space-y-3">{product.product_variants.map((variant) => <div key={variant.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3"><span><strong>{variant.sku}</strong> · {variant.size || "Sem tamanho"} · {variant.color || "Sem cor"}</span><span>{variant.stock_quantity} em estoque · {variant.active ? "Ativa" : "Inativa"}<button type="button" className="ml-4 text-primary" onClick={() => { setEditingId(variant.id); setForm({ sku: variant.sku, size: variant.size || "", color: variant.color || "", price_override: variant.price_override?.toString() || "", stock_quantity: String(variant.stock_quantity), active: variant.active }); }}>Editar</button><button type="button" className="ml-3 text-destructive" onClick={async () => { if (window.confirm("Excluir esta variante?")) { await removeAdminProductVariant(variant.id); await load(); } }}>Excluir</button></span></div>)}</div>}</div></div>;
 }
 
 function ProductImagesManager() {
