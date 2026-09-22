@@ -48,6 +48,12 @@ export async function toggleAdminProduct(id: string, field: "active" | "featured
   if (error) throw error;
 }
 
+export async function deleteAdminProduct(id: string) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const { error } = await supabase.from("products").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function updateAdminProductPrice(input: { id: string; price: number; compare_at_price: number | null; variantPrices: Array<{ id: string; price_override: number | null }> }) {
   if (!supabase) throw new Error("Supabase não configurado.");
   const { error } = await supabase.from("products").update({ price: input.price, compare_at_price: input.compare_at_price }).eq("id", input.id);
