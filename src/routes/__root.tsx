@@ -3,7 +3,7 @@ import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts } from "
 import { type ReactNode, useEffect } from "react";
 import appCss from "../styles.css?url";
 import { CartProvider } from "../../cart-context";
-import "../lib/supabase";
+import { supabase } from "../lib/supabase";
 
 function NotFoundComponent() { return <div className="flex min-h-screen items-center justify-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-7xl font-bold text-foreground">404</h1><h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2><p className="mt-2 text-sm text-muted-foreground">The page you're looking for doesn't exist or has been moved.</p><Link to="/" className="mt-6 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Go home</Link></div></div>; }
 
@@ -15,7 +15,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) { return <html lang="pt-BR"><head><HeadContent /></head><body>{children}<Scripts /></body></html>; }
-function ThemePersistence() { useEffect(() => { try { const raw = localStorage.getItem("leh-closett-appearance"); if (!raw) return; const settings = JSON.parse(raw) as Record<string, string>; const root = document.documentElement; if (settings.primary) root.style.setProperty("--primary", settings.primary); if (settings.accent) root.style.setProperty("--accent", settings.accent); if (settings.background) root.style.setProperty("--background", settings.background); if (settings.text) root.style.setProperty("--foreground", settings.text); if (settings.font) root.style.setProperty("--site-font-family", settings.font); } catch { /* Mantém os tokens padrão quando não houver configuração válida. */ } }, []); return null; }
+function ThemePersistence() { useEffect(() => { let active = true; const load = async () => { if (!supabase) return; const { data } = await supabase.from("store_settings").select("appearance").eq("id", "default").maybeSingle(); if (!active || !data?.appearance || typeof data.appearance !== "object") return; const settings = data.appearance as Record<string, string>; const root = document.documentElement; if (settings.primary) root.style.setProperty("--primary", settings.primary); if (settings.accent) root.style.setProperty("--accent", settings.accent); if (settings.background) root.style.setProperty("--background", settings.background); if (settings.text) root.style.setProperty("--foreground", settings.text); if (settings.font) root.style.setProperty("--site-font-family", settings.font); }; void load(); return () => { active = false; }; }, []); return null; }
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return <QueryClientProvider client={queryClient}><CartProvider><ThemePersistence /><Outlet /></CartProvider></QueryClientProvider>;
