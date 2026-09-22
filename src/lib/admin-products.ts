@@ -42,6 +42,30 @@ export async function saveAdminProduct(input: { id?: string; name: string; slug:
   if (images.length) { const { error } = await supabase.from("product_images").insert(images); if (error) throw error; }
 }
 
+export async function uploadAdminProductImage(productId: string, file: File, altText: string, sortOrder: number, isPrimary: boolean) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${productId}/${crypto.randomUUID()}.${extension}`;
+  const upload = await supabase.storage.from("product-images").upload(path, file, { upsert: false, contentType: file.type });
+  if (upload.error) throw upload.error;
+  const { data: publicFile } = supabase.storage.from("product-images").getPublicUrl(path);
+  const { data, error } = await supabase.from("product_images").insert({ product_id: productId, image_url: publicFile.publicUrl, alt_text: altText || null, sort_order: sortOrder, is_primary: isPrimary }).select("id, image_url, alt_text, sort_order, is_primary").single();
+  if (error) {
+    await supabase.storage.from("product-images").remove([path]);
+    throw error;
+  }
+  return data as AdminProduct["product_images"][number];
+}
+
+export async function removeAdminProductImage(imageId: string, imageUrl: string) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const { error } = await supabase.from("product_images").delete().eq("id", imageId);
+  if (error) throw error;
+  const marker = "/storage/v1/object/public/product-images/";
+  const path = imageUrl.split(marker)[1];
+  if (path) await supabase.storage.from("product-images").remove([decodeURIComponent(path)]);
+}
+
 export async function toggleAdminProduct(id: string, field: "active" | "featured", value: boolean) {
   if (!supabase) throw new Error("Supabase não configurado.");
   const { error } = await supabase.from("products").update({ [field]: value }).eq("id", id);

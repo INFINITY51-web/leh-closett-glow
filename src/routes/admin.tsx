@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useLocation, useNavigate } fro
 import { useEffect, useState } from "react";
 import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-auth";
 import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
+import { listAdminProducts, removeAdminProductImage, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -44,7 +45,7 @@ function AdminRouteLayout() {
 function AdminDashboard({ session }: { session: AdminSession }) {
   const navigate = useNavigate();
   const [section, setSection] = useState("Visão geral");
-  const [productArea, setProductArea] = useState<"Produtos" | "Categorias">("Produtos");
+  const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens">("Produtos");
 
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
@@ -81,12 +82,37 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   </div>;
 }
 
-function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias"; onAreaChange: (area: "Produtos" | "Categorias") => void }) {
+function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens") => void }) {
   return <div className="mt-8 space-y-6">
     <div className="flex gap-2 border-b border-border">
-      {(["Produtos", "Categorias"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
+      {(["Produtos", "Categorias", "Imagens"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
     </div>
-    {area === "Categorias" ? <CategoriesManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
+    {area === "Categorias" ? <CategoriesManager /> : area === "Imagens" ? <ProductImagesManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
+  </div>;
+}
+
+function ProductImagesManager() {
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [productId, setProductId] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [altText, setAltText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  async function load() { try { setLoading(true); setProducts(await listAdminProducts()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar as imagens."); } finally { setLoading(false); } }
+  useEffect(() => { void load(); }, []);
+  const product = products.find((item) => item.id === productId);
+  async function addImage(event: React.FormEvent) { event.preventDefault(); if (!product || !file) return; try { setSaving(true); setError(""); await uploadAdminProductImage(product.id, file, altText || product.name, product.product_images.length, product.product_images.length === 0); setFile(null); setAltText(""); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível adicionar a imagem."); } finally { setSaving(false); } }
+  async function removeImage(image: AdminProduct["product_images"][number]) { if (!window.confirm("Remover esta imagem?")) return; try { await removeAdminProductImage(image.id, image.image_url); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível remover a imagem."); } }
+  return <div className="space-y-6">
+    <form onSubmit={addImage} className="grid gap-4 rounded-xl border border-border bg-card p-5 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+      <label className="text-sm">Produto<select aria-label="Produto da imagem" value={productId} onChange={(event) => setProductId(event.target.value)} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2"><option value="">Selecione</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label className="text-sm">Arquivo<input aria-label="Arquivo da imagem" type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="mt-2 w-full text-sm" required /></label>
+      <label className="text-sm">Texto alternativo<input aria-label="Texto alternativo" value={altText} onChange={(event) => setAltText(event.target.value)} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label>
+      <button disabled={saving || loading || !product} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{saving ? "Enviando..." : "Adicionar"}</button>
+    </form>
+    {error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    {!loading && products.length === 0 ? <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">Nenhum produto cadastrado.</div> : <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{products.flatMap((item) => item.product_images.map((image) => <article key={image.id} className="overflow-hidden rounded-xl border border-border bg-card"><img src={image.image_url} alt={image.alt_text || item.name} className="aspect-[4/5] w-full object-cover" /><div className="space-y-2 p-4"><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{image.is_primary ? "Imagem principal" : "Imagem adicional"}</p><button type="button" onClick={() => void removeImage(image)} className="text-sm text-destructive hover:underline">Remover</button></div></article>))}</div>}
   </div>;
 }
 
