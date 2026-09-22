@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-auth";
 import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
 import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProductVariant, updateAdminProductPrice, updateAdminProductPromotion, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
-import { listInventoryMovements, type InventoryMovement } from "../lib/admin-inventory";
+import { listInventoryMovements, listInventoryReservations, type InventoryMovement, type InventoryReservation } from "../lib/admin-inventory";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -47,7 +47,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   const navigate = useNavigate();
   const [section, setSection] = useState("Visão geral");
   const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções">("Produtos");
-  const [inventoryArea, setInventoryArea] = useState<"Estoque" | "Movimentações">("Estoque");
+  const [inventoryArea, setInventoryArea] = useState<"Estoque" | "Movimentações" | "Reservas">("Estoque");
 
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
@@ -106,8 +106,8 @@ function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" 
   </div>;
 }
 
-function InventoryArea({ area, onAreaChange }: { area: "Estoque" | "Movimentações"; onAreaChange: (area: "Estoque" | "Movimentações") => void }) {
-  return <div className="mt-8 space-y-6"><nav aria-label="Navegação de Estoque" className="flex flex-wrap gap-2 border-b border-border">{(["Estoque", "Movimentações"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}</nav><div key={area}>{area === "Estoque" ? <InventoryManager /> : <InventoryMovementsManager />}</div></div>;
+function InventoryArea({ area, onAreaChange }: { area: "Estoque" | "Movimentações" | "Reservas"; onAreaChange: (area: "Estoque" | "Movimentações" | "Reservas") => void }) {
+  return <div className="mt-8 space-y-6"><nav aria-label="Navegação de Estoque" className="flex flex-wrap gap-2 border-b border-border">{(["Estoque", "Movimentações", "Reservas"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}</nav><div key={area}>{area === "Estoque" ? <InventoryManager /> : area === "Movimentações" ? <InventoryMovementsManager /> : <InventoryReservationsManager />}</div></div>;
 }
 
 function InventoryMovementsManager() {
@@ -120,6 +120,16 @@ function InventoryMovementsManager() {
   const variants = new Map(products.flatMap((product) => product.product_variants.map((variant) => [variant.id, { product: product.name, variant: `${variant.sku} · ${variant.size || "Sem tamanho"} · ${variant.color || "Sem cor"}` }])));
   const typeLabels = { entry: "Entrada", exit: "Saída", adjustment: "Ajuste" };
   return <div className="space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Variante</th><th className="p-4">Quantidade</th><th className="p-4">Tipo</th><th className="p-4">Data</th></tr></thead><tbody>{loading ? <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Carregando movimentações...</td></tr> : movements.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma movimentação registrada.</td></tr> : movements.map((movement) => { const variant = variants.get(movement.variant_id); return <tr key={movement.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{variant?.product || "Produto não encontrado"}</td><td className="p-4">{variant?.variant || movement.variant_id}</td><td className="p-4">{movement.quantity}</td><td className="p-4">{typeLabels[movement.movement_type]}</td><td className="p-4 text-muted-foreground">{new Date(movement.created_at).toLocaleString("pt-BR")}</td></tr>; })}</tbody></table></div></div>;
+}
+
+function InventoryReservationsManager() {
+  const [reservations, setReservations] = useState<InventoryReservation[]>([]);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => { void (async () => { try { setLoading(true); const [reservationRows, productRows] = await Promise.all([listInventoryReservations(), listAdminProducts()]); setReservations(reservationRows); setProducts(productRows); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar as reservas."); } finally { setLoading(false); } })(); }, []);
+  const variants = new Map(products.flatMap((product) => product.product_variants.map((variant) => [variant.id, { product: product.name, variant: `${variant.sku} · ${variant.size || "Sem tamanho"} · ${variant.color || "Sem cor"}` }])));
+  return <div className="space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Variante</th><th className="p-4">Quantidade</th><th className="p-4">Status</th><th className="p-4">Data</th></tr></thead><tbody>{loading ? <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Carregando reservas...</td></tr> : reservations.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma reserva registrada.</td></tr> : reservations.map((reservation) => { const variant = variants.get(reservation.variant_id); return <tr key={reservation.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{variant?.product || "Produto não encontrado"}</td><td className="p-4">{variant?.variant || reservation.variant_id}</td><td className="p-4">{reservation.quantity}</td><td className="p-4">{reservation.status}</td><td className="p-4 text-muted-foreground">{new Date(reservation.created_at).toLocaleString("pt-BR")}</td></tr>; })}</tbody></table></div></div>;
 }
 
 function InventoryManager() {

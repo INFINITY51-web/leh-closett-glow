@@ -26,6 +26,14 @@ export type InventoryMovement = {
   created_at: string;
 };
 
+export type InventoryReservation = {
+  id: string;
+  variant_id: string;
+  quantity: number;
+  status: string;
+  created_at: string;
+};
+
 export async function listInventory(): Promise<InventoryRow[]> {
   if (!supabase) throw new Error("Supabase não configurado.");
   const { data, error } = await supabase.from("inventory_stock").select("id, product_id, variant_id, sku, product_name, size, color, quantity, minimum_quantity").order("product_name");
@@ -44,6 +52,17 @@ export async function listInventoryMovements(variantId?: string): Promise<Invent
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as InventoryMovement[];
+}
+
+export async function listInventoryReservations(): Promise<InventoryReservation[]> {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const { data, error } = await supabase
+    .from("inventory_reservations")
+    .select("id, variant_id, quantity, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return (data ?? []) as InventoryReservation[];
 }
 
 export async function registerInventoryMovement(input: {
