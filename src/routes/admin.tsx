@@ -5,6 +5,7 @@ import { listAdminCategories, removeAdminCategory, saveAdminCategory, type Admin
 import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProductVariant, updateAdminProductPrice, updateAdminProductPromotion, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
 import { listInventory, listInventoryMovements, listInventoryReservations, updateInventoryMinimum, type InventoryMovement, type InventoryReservation, type InventoryRow } from "../lib/admin-inventory";
 import { getAdminOrder, listAdminOrders, updateAdminOrderStatus } from "../lib/orders";
+import { supabase } from "../lib/supabase";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -60,7 +61,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     await navigate({ to: "/admin/login", replace: true });
   }
 
-  const sections = ["Visão geral", "Site e Conteúdo", "Produtos", "Estoque", "Pedidos", "Logística", "Devoluções", "Financeiro", "Análises", "Clientes", "Configurações"];
+  const sections = ["Visão geral", "Site e Conteúdo", "Produtos", "Estoque", "Pedidos", "Fornecedores", "Logística", "Devoluções", "Financeiro", "Análises", "Clientes", "Configurações"];
 
   return <div className="min-h-screen bg-background text-foreground">
     <header className="border-b border-border bg-card">
@@ -79,7 +80,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
       <main key={section} className="min-w-0">
         <p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Painel administrativo</p>
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{section}</h1>
-        {section === "Visão geral" ? <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Acesso administrativo</p><p className="mt-3 text-lg font-medium">Painel ativo</p></article><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Conta conectada</p><p className="mt-3 truncate text-lg font-medium">{session.email}</p></article></div> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Pedidos" ? <OrdersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
+        {section === "Visão geral" ? <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Acesso administrativo</p><p className="mt-3 text-lg font-medium">Painel ativo</p></article><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Conta conectada</p><p className="mt-3 truncate text-lg font-medium">{session.email}</p></article></div> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Pedidos" ? <OrdersManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
       </main>
     </div>
   </div>;
@@ -121,6 +122,39 @@ function OrdersManager() {
   const address = (order: any) => { const value = order.shipping_address; if (!value) return "Não informado"; return [value.address, value.cep, value.city, value.state].filter(Boolean).join(" · ") || "Não informado"; };
   const shipment = (order: any) => order.shipments?.[0];
   return <div className="mt-8 space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}{selected && <section className="rounded-xl border border-primary/40 bg-card p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.2em] text-primary">Detalhes do pedido</p><h2 className="mt-2 text-2xl font-semibold">{selected.order_number || selected.number}</h2></div><button type="button" onClick={() => setSelected(null)} className="text-sm text-muted-foreground hover:text-foreground">Fechar</button></div><div className="mt-5 grid gap-3 text-sm md:grid-cols-2"><p><span className="text-muted-foreground">Cliente:</span> {customer(selected)}</p><p><span className="text-muted-foreground">Endereço:</span> {address(selected)}</p><p><span className="text-muted-foreground">Pagamento:</span> {payment(selected)}</p><p><span className="text-muted-foreground">Total:</span> R$ {Number(selected.total || 0).toFixed(2)}</p><label><span className="text-muted-foreground">Status:</span><select value={selected.status || ""} disabled={savingStatus} onChange={(event) => void changeStatus(event.target.value)} className="ml-2 rounded-lg border border-input bg-background px-2 py-1"><option value="">Selecione</option>{["pending", "preparing", "shipped", "delivered", "cancelled"].map((status) => <option key={status} value={status}>{status}</option>)}</select></label><p><span className="text-muted-foreground">Entrega:</span> {shipment(selected)?.status || "Em preparação"}{shipment(selected)?.tracking_code ? ` · ${shipment(selected).tracking_code}` : ""}</p></div><div className="mt-5 border-t border-border pt-4"><h3 className="font-medium">Itens</h3>{(selected.order_items || []).map((item: any) => <p key={item.id} className="mt-2 text-sm text-muted-foreground">{item.product_name || item.name || "Produto"} · quantidade: {item.quantity} · R$ {Number(item.total || item.unit_price || item.price || 0).toFixed(2)}</p>)}</div></section>}<div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Número do pedido</th><th className="p-4">Cliente</th><th className="p-4">Data</th><th className="p-4">Status</th><th className="p-4">Pagamento</th><th className="p-4">Total</th><th className="p-4">Ação</th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Carregando pedidos...</td></tr> : orders.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr> : orders.map((order) => <tr key={order.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{order.order_number || order.number || order.id}</td><td className="p-4">{customer(order)}</td><td className="p-4 text-muted-foreground">{order.created_at ? new Date(order.created_at).toLocaleString("pt-BR") : "—"}</td><td className="p-4">{order.status || "—"}</td><td className="p-4">{payment(order)}</td><td className="p-4">R$ {Number(order.total || 0).toFixed(2)}</td><td className="p-4"><button type="button" onClick={() => void openOrder(order.id)} className="text-primary hover:underline">Ver detalhes</button></td></tr>)}</tbody></table></div></div>;
+}
+
+type Supplier = { id: string; name: string; country: string | null; city: string | null; state: string | null; contact_name: string | null; contact_email: string | null; contact_phone: string | null; status: string; integration_status: string };
+
+function SuppliersManager() {
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
+  const [selected, setSelected] = useState<Supplier | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => { void (async () => {
+    if (!supabase) { setError("Supabase não está configurado."); setLoading(false); return; }
+    const { data, error: requestError } = await supabase.from("suppliers").select("*").order("name");
+    if (requestError) setError("Não foi possível carregar os fornecedores. Verifique a tabela suppliers no Supabase.");
+    else setSuppliers((data ?? []) as Supplier[]);
+    setLoading(false);
+  })(); }, []);
+
+  const filtered = suppliers.filter((supplier) => {
+    const text = [supplier.name, supplier.country, supplier.city, supplier.state, supplier.contact_name, supplier.contact_email].filter(Boolean).join(" ").toLowerCase();
+    return text.includes(query.toLowerCase()) && (status === "all" || supplier.status === status);
+  });
+  const statuses = [...new Set(suppliers.map((supplier) => supplier.status).filter(Boolean))];
+  const contact = (supplier: Supplier) => supplier.contact_name || supplier.contact_email || supplier.contact_phone || "Não informado";
+  return <div className="mt-8 space-y-6">
+    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><p className="text-sm text-muted-foreground">Gestão e conexão operacional</p><h2 className="mt-1 text-2xl font-semibold">Fornecedores</h2></div><button type="button" onClick={() => setError("O cadastro será habilitado após a estrutura suppliers ser criada no Supabase.")} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground transition hover:opacity-90">Adicionar fornecedor</button></div>
+    <div className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-[1fr_12rem]"><label className="text-sm font-medium">Buscar fornecedor<input aria-label="Buscar fornecedor" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome, país ou contato" className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm font-medium">Status<select aria-label="Filtrar por status" value={status} onChange={(event) => setStatus(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todos</option>{statuses.map((item) => <option key={item} value={item}>{item}</option>)}</select></label></div>
+    {error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    {selected && <section className="rounded-xl border border-primary/40 bg-card p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.2em] text-primary">Dados do fornecedor</p><h3 className="mt-2 text-2xl font-semibold">{selected.name}</h3></div><button type="button" onClick={() => setSelected(null)} className="text-sm text-muted-foreground hover:text-foreground">Fechar</button></div><div className="mt-5 grid gap-3 text-sm md:grid-cols-2"><p><span className="text-muted-foreground">País:</span> {selected.country || "—"}</p><p><span className="text-muted-foreground">Local:</span> {[selected.city, selected.state].filter(Boolean).join(" / ") || "—"}</p><p><span className="text-muted-foreground">Contato:</span> {contact(selected)}</p><p><span className="text-muted-foreground">Integração:</span> {selected.integration_status || "Não configurada"}</p></div></section>}
+    <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="p-4">Fornecedor</th><th className="p-4">País</th><th className="p-4">Cidade / estado</th><th className="p-4">Contato</th><th className="p-4">Status</th><th className="p-4">Integração</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando fornecedores...</td></tr> : filtered.length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum fornecedor encontrado.</td></tr> : filtered.map((supplier) => <tr key={supplier.id} tabIndex={0} role="button" onClick={() => setSelected(supplier)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelected(supplier); }} className="cursor-pointer border-b border-border transition hover:bg-muted/50 focus-visible:bg-muted/50 last:border-0"><td className="p-4 font-medium text-primary">{supplier.name}</td><td className="p-4">{supplier.country || "—"}</td><td className="p-4">{[supplier.city, supplier.state].filter(Boolean).join(" / ") || "—"}</td><td className="p-4">{contact(supplier)}</td><td className="p-4">{supplier.status || "—"}</td><td className="p-4">{supplier.integration_status || "Não configurada"}</td></tr>)}</tbody></table></div>
+  </div>;
 }
 
 function InventoryArea({ area, onAreaChange }: { area: "Estoque" | "Movimentações" | "Reservas" | "Alertas"; onAreaChange: (area: "Estoque" | "Movimentações" | "Reservas" | "Alertas") => void }) {
