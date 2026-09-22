@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-auth";
+import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -43,6 +44,12 @@ function AdminRouteLayout() {
 function AdminDashboard({ session }: { session: AdminSession }) {
   const navigate = useNavigate();
   const [section, setSection] = useState("Visão geral");
+  const [productArea, setProductArea] = useState<"Produtos" | "Categorias">("Produtos");
+
+  function handleSectionChange(nextSection: string) {
+    setSection(nextSection);
+    if (nextSection === "Produtos") setProductArea("Produtos");
+  }
 
   async function handleSignOut() {
     await signOutAdmin();
@@ -63,13 +70,54 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     </header>
     <div className="mx-auto grid max-w-7xl gap-8 px-5 py-8 md:grid-cols-[14rem_1fr] md:px-8">
       <nav aria-label="Navegação administrativa" className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible">
-        {sections.map((item) => <button key={item} type="button" onClick={() => setSection(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition ${section === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}
+        {sections.map((item) => <button key={item} type="button" onClick={() => handleSectionChange(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition ${section === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}
       </nav>
       <main key={section} className="min-w-0">
         <p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Painel administrativo</p>
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{section}</h1>
-        {section === "Visão geral" ? <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Acesso administrativo</p><p className="mt-3 text-lg font-medium">Painel ativo</p></article><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Conta conectada</p><p className="mt-3 truncate text-lg font-medium">{session.email}</p></article></div> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
+        {section === "Visão geral" ? <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Acesso administrativo</p><p className="mt-3 text-lg font-medium">Painel ativo</p></article><article className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Conta conectada</p><p className="mt-3 truncate text-lg font-medium">{session.email}</p></article></div> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
       </main>
     </div>
+  </div>;
+}
+
+function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias"; onAreaChange: (area: "Produtos" | "Categorias") => void }) {
+  return <div className="mt-8 space-y-6">
+    <div className="flex gap-2 border-b border-border">
+      {(["Produtos", "Categorias"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
+    </div>
+    {area === "Categorias" ? <CategoriesManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
+  </div>;
+}
+
+function CategoriesManager() {
+  const emptyForm = { name: "", description: "", active: true };
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | undefined>();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function load() {
+    try { setLoading(true); setError(""); setCategories(await listAdminCategories()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar as categorias."); } finally { setLoading(false); }
+  }
+  useEffect(() => { void load(); }, []);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!form.name.trim()) return;
+    try { setSaving(true); setError(""); await saveAdminCategory({ id: editingId, name: form.name.trim(), slug: (editingId ? categories.find((item) => item.id === editingId)?.slug : form.name).toLowerCase().trim().replace(/\\s+/g, "-"), description: form.description.trim() || null, image_url: null, active: form.active, sort_order: editingId ? categories.find((item) => item.id === editingId)?.sort_order ?? 0 : categories.length }); setForm(emptyForm); setEditingId(undefined); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível salvar a categoria."); } finally { setSaving(false); }
+  }
+  async function remove(id: string) { if (!window.confirm("Excluir esta categoria?")) return; try { await removeAdminCategory(id); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível excluir a categoria."); } }
+
+  return <div className="space-y-6">
+    <form onSubmit={submit} className="grid gap-4 rounded-xl border border-border bg-card p-5 md:grid-cols-[1fr_1.5fr_auto] md:items-end">
+      <label className="text-sm">Nome<input aria-label="Nome da categoria" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" required /></label>
+      <label className="text-sm">Descrição<input aria-label="Descrição da categoria" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label>
+      <div className="flex items-center gap-3"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />Ativa</label><button disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{saving ? "Salvando..." : editingId ? "Atualizar" : "Criar"}</button></div>
+    </form>
+    {error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Nome</th><th className="p-4">Descrição</th><th className="p-4">Status</th><th className="p-4">Ações</th></tr></thead><tbody>{loading ? <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Carregando categorias...</td></tr> : categories.length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma categoria cadastrada.</td></tr> : categories.map((category) => <tr key={category.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{category.name}</td><td className="p-4 text-muted-foreground">{category.description || "—"}</td><td className="p-4">{category.active ? "Ativa" : "Inativa"}</td><td className="p-4"><button type="button" onClick={() => { setEditingId(category.id); setForm({ name: category.name, description: category.description || "", active: category.active }); }} className="mr-3 text-primary hover:underline">Editar</button><button type="button" onClick={() => void remove(category.id)} className="text-destructive hover:underline">Excluir</button></td></tr>)}</tbody></table></div>
   </div>;
 }
