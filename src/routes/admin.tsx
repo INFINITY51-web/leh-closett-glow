@@ -83,11 +83,24 @@ function AdminDashboard({ session }: { session: AdminSession }) {
 }
 
 function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções") => void }) {
+  const areas = ["Produtos", "Categorias", "Variantes", "Imagens", "Preços", "Promoções"] as const;
+
+  function renderArea() {
+    switch (area) {
+      case "Categorias": return <CategoriesManager />;
+      case "Variantes": return <ProductVariantsManager />;
+      case "Imagens": return <ProductImagesManager />;
+      case "Preços": return <ProductPricesManager />;
+      case "Promoções": return <ProductPromotionsManager />;
+      case "Produtos": return <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>;
+    }
+  }
+
   return <div className="mt-8 space-y-6">
-    <div className="flex gap-2 border-b border-border">
-      {(["Produtos", "Categorias", "Imagens", "Variantes", "Preços", "Promoções"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
-    </div>
-    {area === "Categorias" ? <CategoriesManager /> : area === "Imagens" ? <ProductImagesManager /> : area === "Variantes" ? <ProductVariantsManager /> : area === "Preços" ? <ProductPricesManager /> : area === "Promoções" ? <ProductPromotionsManager /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>}
+    <nav aria-label="Navegação de Produtos" className="flex flex-wrap gap-2 border-b border-border">
+      {areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} aria-current={area === item ? "page" : undefined} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
+    </nav>
+    <div key={area}>{renderArea()}</div>
   </div>;
 }
 
