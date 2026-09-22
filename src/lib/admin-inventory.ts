@@ -41,6 +41,12 @@ export async function listInventory(): Promise<InventoryRow[]> {
   return (data ?? []) as InventoryRow[];
 }
 
+export async function updateInventoryMinimum(variantId: string, minimumQuantity: number) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const { error } = await supabase.from("inventory_stock").update({ minimum_quantity: minimumQuantity }).eq("variant_id", variantId);
+  if (error) throw error;
+}
+
 export async function listInventoryMovements(variantId?: string): Promise<InventoryMovement[]> {
   if (!supabase) throw new Error("Supabase não configurado.");
   let query = supabase
