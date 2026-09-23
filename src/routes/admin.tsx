@@ -53,6 +53,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções">("Produtos");
   const [inventoryArea, setInventoryArea] = useState<"Estoque" | "Movimentações" | "Reservas" | "Alertas">("Estoque");
   const [appearanceArea, setAppearanceArea] = useState("Banners");
+  const [alertOrderId, setAlertOrderId] = useState<string | null>(null);
 
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
@@ -84,7 +85,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
       <main key={section} className="min-w-0">
         <p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Painel administrativo</p>
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{section}</h1>
-        {section === "Visão geral" ? <OverviewDashboard /> : section === "Site e Conteúdo" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} /> : section === "Pedidos" ? <OrdersManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
+        {section === "Visão geral" ? <OverviewDashboard /> : section === "Site e Conteúdo" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} onOpenOrder={(orderId) => { setSection("Pedidos"); setAlertOrderId(orderId); }} /> : section === "Pedidos" ? <OrdersManager initialOrderId={alertOrderId} /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
       </main>
     </div>
   </div>;
@@ -263,13 +264,13 @@ function AdminProductsManager() {
   </div>;
 }
 
-function OrdersManager() {
+function OrdersManager({ initialOrderId }: { initialOrderId?: string | null }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingStatus, setSavingStatus] = useState(false);
-  useEffect(() => { void (async () => { try { setOrders(await listAdminOrders()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os pedidos."); } finally { setLoading(false); } })(); }, []);
+  useEffect(() => { void (async () => { try { const rows = await listAdminOrders(); setOrders(rows); if (initialOrderId) setSelected(rows.find((order) => order.id === initialOrderId) ?? null); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os pedidos."); } finally { setLoading(false); } })(); }, [initialOrderId]);
   async function openOrder(id: string) { try { setError(""); const order = await getAdminOrder(id); setSelected(order); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os detalhes."); } }
   async function changeStatus(status: string) { if (!selected || !status) return; try { setSavingStatus(true); await updateAdminOrderStatus(selected.id, status); const refreshed = await getAdminOrder(selected.id); setSelected(refreshed); setOrders((current) => current.map((order) => order.id === refreshed.id ? { ...order, status: refreshed.status } : order)); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível atualizar o status."); } finally { setSavingStatus(false); } }
   const customer = (order: any) => order.shipping_address?.full_name || order.customer_name || order.customer_email || "Cliente não identificado";
@@ -320,9 +321,11 @@ function InventoryArea({ area, onAreaChange }: { area: "Estoque" | "Movimentaç�
   return <div className="mt-8 space-y-6"><nav aria-label="Navegação de Estoque" className="flex flex-wrap gap-2 border-b border-border">{(["Estoque", "Movimentações", "Reservas", "Alertas"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}</nav><div key={area}>{area === "Estoque" ? <InventoryManager /> : area === "Movimentações" ? <InventoryMovementsManager /> : area === "Reservas" ? <RealReservationsManager /> : <InventoryAlertsManager />}</div></div>;
 }
 
-function AdminAlertsPage({ onOpenArea }: { onOpenArea: (area: "Estoque" | "Reservas") => void }) {
+function AdminAlertsPage({ onOpenArea, onOpenOrder }: { onOpenArea: (area: "Estoque" | "Reservas") => void; onOpenOrder: (orderId: string) => void }) {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [carts, setCarts] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [now, setNow] = useState(Date.now());
@@ -331,15 +334,19 @@ function AdminAlertsPage({ onOpenArea }: { onOpenArea: (area: "Estoque" | "Reser
     try {
       setLoading(true); setError("");
       if (!supabase) throw new Error("Supabase não está configurado.");
-      const [productRows, cartResult, itemResult] = await Promise.all([
+      const [productRows, cartResult, itemResult, paymentResult, orderResult] = await Promise.all([
         listAdminProducts(),
         supabase.from("carts").select("id,expires_at,status,payment_status,created_at"),
-        supabase.from("cart_items").select("cart_id")
+        supabase.from("cart_items").select("cart_id"),
+        supabase.from("payments").select("*"),
+        supabase.from("orders").select("id,order_number,total,created_at,shipping_address,customer_name,customer_email")
       ]);
       if (cartResult.error) throw cartResult.error;
       if (itemResult.error) throw itemResult.error;
+      if (paymentResult.error) throw paymentResult.error;
+      if (orderResult.error) throw orderResult.error;
       const cartIds = new Set((itemResult.data ?? []).map((item: any) => String(item.cart_id)));
-      setProducts(productRows); setCarts((cartResult.data ?? []).filter((cart: any) => cartIds.has(String(cart.id))));
+      setProducts(productRows); setCarts((cartResult.data ?? []).filter((cart: any) => cartIds.has(String(cart.id)))); setPayments(paymentResult.data ?? []); setOrders(orderResult.data ?? []);
     } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os alertas reais."); }
     finally { setLoading(false); }
   }
@@ -353,9 +360,17 @@ function AdminAlertsPage({ onOpenArea }: { onOpenArea: (area: "Estoque" | "Reser
   });
   const dateLabel = (value: string | undefined) => value ? new Date(value).toLocaleString("pt-BR") : "Data não informada";
   const level = (zero: boolean) => zero ? "Crítico" : "Atenção";
-  const card = (title: string, children: React.ReactNode, description: string) => <section className="rounded-xl border border-border bg-card p-5"><div className="flex items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">{title}</h2><p className="mt-1 text-sm text-muted-foreground">{description}</p></div><span className="rounded-full border border-border px-2 py-1 text-xs text-muted-foreground">{title === "Estoque" ? stockAlerts.length : reservationAlerts.length}</span></div>{children}</section>;
+  const orderMap = new Map(orders.map((order) => [String(order.id), order]));
+  const paymentAlerts = payments.map((payment) => {
+    const status = String(payment.status ?? payment.payment_status ?? "").toLowerCase();
+    const order = orderMap.get(String(payment.order_id ?? payment.external_reference ?? ""));
+    const approved = ["approved", "confirmed", "paid", "pago", "aprovado", "confirmado"].includes(status);
+    const failed = ["rejected", "failed", "failure", "recusado", "rejeitado", "falhou"].includes(status);
+    return { payment, order, status, level: approved ? "success" : failed ? "danger" : "warning", label: approved ? "Pagamento aprovado" : failed ? "Pagamento rejeitado/falhou" : "Pagamento pendente" };
+  });
+  const card = (title: string, children: React.ReactNode, description: string) => <section className="rounded-xl border border-border bg-card p-5"><div className="flex items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">{title}</h2><p className="mt-1 text-sm text-muted-foreground">{description}</p></div><span className="rounded-full border border-border px-2 py-1 text-xs text-muted-foreground">{title === "Estoque" ? stockAlerts.length : title === "Reservas" ? reservationAlerts.length : paymentAlerts.length}</span></div>{children}</section>;
   const empty = (text: string) => <div className="mt-5 rounded-lg border border-dashed border-border bg-muted/30 p-5 text-sm text-muted-foreground">{text}</div>;
-  return <div className="mt-8 space-y-6"><p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">Alertas calculados a partir dos dados reais de variantes e reservas. A consulta não altera estoque, reservas ou pedidos.</p>{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}{loading ? <div className="rounded-xl border border-border bg-card p-8 text-sm text-muted-foreground">Carregando alertas reais...</div> : <div className="grid gap-5 lg:grid-cols-2">{card("Estoque", stockAlerts.length === 0 ? empty("Nenhum alerta de estoque no momento.") : <div className="mt-5 space-y-3">{stockAlerts.map(({ product, variant }) => { const zero = variant.stock_quantity === 0; return <article key={variant.id} className="rounded-lg border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{zero ? "Estoque zerado" : "Estoque baixo"}</p><p className="text-sm text-muted-foreground">{product.name} · {variant.color || "Sem cor"} / {variant.size || "Sem tamanho"} · {variant.stock_quantity} unidade(s)</p></div><span className={zero ? "text-destructive" : "text-primary"}>{level(zero)}</span></div><p className="mt-2 text-xs text-muted-foreground">Verificado em {dateLabel(new Date().toISOString())}</p><button type="button" onClick={() => onOpenArea("Estoque")} className="mt-3 text-sm text-primary hover:underline">Abrir estoque</button></article>; })}</div>, "Variantes zeradas ou abaixo de 5 unidades")}{card("Reservas", reservationAlerts.length === 0 ? empty("Nenhuma reserva próxima da expiração.") : <div className="mt-5 space-y-3">{reservationAlerts.map((cart) => { const minutes = Math.max(0, Math.floor((new Date(cart.expires_at).getTime() - now) / 60000)); return <article key={cart.id} className="rounded-lg border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">Reserva próxima da expiração</p><p className="text-sm text-muted-foreground">Expira em {Math.floor(minutes / 60)}h {minutes % 60}min · criada em {dateLabel(cart.created_at)}</p></div><span className="text-primary">Atenção</span></div><p className="mt-2 text-xs text-muted-foreground">Expiração: {dateLabel(cart.expires_at)}</p><button type="button" onClick={() => onOpenArea("Reservas")} className="mt-3 text-sm text-primary hover:underline">Abrir reservas</button></article>; })}</div>, "Reservas reais com vencimento nas próximas 24 horas")}</div>}</div>;
+  return <div className="mt-8 space-y-6"><p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">Alertas calculados a partir dos dados reais de variantes e reservas. A consulta não altera estoque, reservas ou pedidos.</p>{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}{loading ? <div className="rounded-xl border border-border bg-card p-8 text-sm text-muted-foreground">Carregando alertas reais...</div> : <div className="grid gap-5 lg:grid-cols-2">{card("Estoque", stockAlerts.length === 0 ? empty("Nenhum alerta de estoque no momento.") : <div className="mt-5 space-y-3">{stockAlerts.map(({ product, variant }) => { const zero = variant.stock_quantity === 0; return <article key={variant.id} className="rounded-lg border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{zero ? "Estoque zerado" : "Estoque baixo"}</p><p className="text-sm text-muted-foreground">{product.name} · {variant.color || "Sem cor"} / {variant.size || "Sem tamanho"} · {variant.stock_quantity} unidade(s)</p></div><span className={zero ? "text-destructive" : "text-primary"}>{level(zero)}</span></div><p className="mt-2 text-xs text-muted-foreground">Verificado em {dateLabel(new Date().toISOString())}</p><button type="button" onClick={() => onOpenArea("Estoque")} className="mt-3 text-sm text-primary hover:underline">Abrir estoque</button></article>; })}</div>, "Variantes zeradas ou abaixo de 5 unidades")}{card("Reservas", reservationAlerts.length === 0 ? empty("Nenhuma reserva próxima da expiração.") : <div className="mt-5 space-y-3">{reservationAlerts.map((cart) => { const minutes = Math.max(0, Math.floor((new Date(cart.expires_at).getTime() - now) / 60000)); return <article key={cart.id} className="rounded-lg border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">Reserva próxima da expiração</p><p className="text-sm text-muted-foreground">Expira em {Math.floor(minutes / 60)}h {minutes % 60}min · criada em {dateLabel(cart.created_at)}</p></div><span className="text-primary">Atenção</span></div><p className="mt-2 text-xs text-muted-foreground">Expiração: {dateLabel(cart.expires_at)}</p><button type="button" onClick={() => onOpenArea("Reservas")} className="mt-3 text-sm text-primary hover:underline">Abrir reservas</button></article>; })}</div>, "Reservas reais com vencimento nas próximas 24 horas")}{card("Pagamentos", paymentAlerts.length === 0 ? empty("Nenhum pagamento persistido encontrado.") : <div className="mt-5 space-y-3">{paymentAlerts.map(({ payment, order, status, level: paymentLevel, label }) => <article key={String(payment.id)} className="rounded-lg border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{label}</p><p className="text-sm text-muted-foreground">Pedido: {order?.order_number || order?.id || payment.order_id || "Não vinculado"} · Cliente: {order?.shipping_address?.full_name || order?.customer_name || order?.customer_email || "Não disponível"}</p></div><span className={paymentLevel === "success" ? "text-emerald-600" : paymentLevel === "danger" ? "text-destructive" : "text-primary"}>{status || "Status não informado"}</span></div><p className="mt-2 text-xs text-muted-foreground">Valor: R$ {Number(payment.amount ?? payment.transaction_amount ?? order?.total ?? 0).toFixed(2).replace(".", ",")} · {dateLabel(payment.created_at || payment.updated_at || order?.created_at)}</p>{order?.id && <button type="button" onClick={() => onOpenOrder(order.id)} className="mt-3 text-sm text-primary hover:underline">Abrir pedido</button>}</article>)}</div>, "Status persistidos em payments e relacionados aos pedidos")}</div>}</div>;
 }
 
 function InventoryAlertsManager() {
