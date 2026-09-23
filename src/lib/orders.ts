@@ -101,9 +101,31 @@ export async function listAdminOrders() {
 
 export async function getAdminOrder(id: string) {
   if (!supabase) throw new Error("Supabase não configurado");
-  const { data, error } = await supabase.from("orders").select("*, order_items(*)").eq("id", id).single();
-  if (error) throw error;
-  return data;
+  const [orderResult, paymentsResult, shipmentsResult] = await Promise.all([
+    supabase.from("orders").select("*, order_items(*)").eq("id", id).single(),
+    supabase.from("payments").select("*").eq("order_id", id).order("created_at", { ascending: false }),
+    supabase.from("shipments").select("*").eq("order_id", id).order("created_at", { ascending: false }),
+  ]);
+  if (orderResult.error) throw orderResult.error;
+  if (paymentsResult.error) throw paymentsResult.error;
+  if (shipmentsResult.error) throw shipmentsResult.error;
+  const items = orderResult.data.order_items ?? [];
+  const productIds = [...new Set(items.map((item: any) => item.product_id).filter(Boolean))];
+  const variantIds = [...new Set(items.map((item: any) => item.variant_id).filter(Boolean))];
+  const [productsResult, variantsResult] = await Promise.all([
+    productIds.length ? supabase.from("products").select("id,name,product_images(*)").in("id", productIds) : Promise.resolve({ data: [], error: null }),
+    variantIds.length ? supabase.from("product_variants").select("id,sku,color,size").in("id", variantIds) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (productsResult.error) throw productsResult.error;
+  if (variantsResult.error) throw variantsResult.error;
+  const products = new Map((productsResult.data ?? []).map((item: any) => [item.id, item]));
+  const variants = new Map((variantsResult.data ?? []).map((item: any) => [item.id, item]));
+  return {
+    ...orderResult.data,
+    payments: paymentsResult.data ?? [],
+    shipments: shipmentsResult.data ?? [],
+    order_items: items.map((item: any) => ({ ...item, product: products.get(item.product_id), variant: variants.get(item.variant_id) })),
+  };
 }
 
 export async function updateAdminOrderStatus(orderId: string, status: string) {
