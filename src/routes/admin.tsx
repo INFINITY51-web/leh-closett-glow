@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useLocation, useNavigate } fro
 import { useEffect, useState } from "react";
 import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-auth";
 import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
-import { listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProductVariant, updateAdminProductPrice, updateAdminProductPromotion, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
+import { deleteAdminProduct, listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProduct, saveAdminProductVariant, updateAdminProductPrice, updateAdminProductPromotion, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
 import { listInventory, listInventoryMovements, listInventoryReservations, updateInventoryMinimum, type InventoryMovement, type InventoryReservation, type InventoryRow } from "../lib/admin-inventory";
 import { getAdminOrder, listAdminOrders, updateAdminOrderStatus } from "../lib/orders";
 import { supabase } from "../lib/supabase";
@@ -203,7 +203,7 @@ function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" 
       case "Imagens": return <ProductImagesManager />;
       case "Preços": return <ProductPricesManager />;
       case "Promoções": return <ProductPromotionsManager />;
-      case "Produtos": return <section className="rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Gerencie os produtos cadastrados nesta área.</p></section>;
+      case "Produtos": return <AdminProductsManager />;
     }
   }
 
@@ -212,6 +212,49 @@ function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" 
       {areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} aria-current={area === item ? "page" : undefined} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}
     </nav>
     <div key={area}>{renderArea()}</div>
+  </div>;
+}
+
+function AdminProductsManager() {
+  const emptyForm = { name: "", slug: "", description: "", price: "", category_id: "", active: true, featured: false, published: true, sku: "", stock_quantity: "0", image: "" };
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | undefined>();
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const pageSize = 10;
+
+  async function load() {
+    try { setLoading(true); setError(""); const [productRows, categoryRows] = await Promise.all([listAdminProducts(), listAdminCategories()]); setProducts(productRows); setCategories(categoryRows); }
+    catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os produtos."); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { void load(); }, []);
+  const filtered = products.filter((product) => {
+    const matchesQuery = `${product.name} ${product.slug}`.toLowerCase().includes(query.toLowerCase());
+    return matchesQuery && (category === "all" || product.category_id === category) && (status === "all" || (status === "active" ? product.active : !product.active));
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const primaryImage = (product: AdminProduct) => product.product_images.find((image) => image.is_primary) ?? product.product_images[0];
+  const categoryName = (id: string | null) => categories.find((item) => item.id === id)?.name || "Sem categoria";
+  function startNew() { setEditingId(undefined); setForm(emptyForm); }
+  function edit(product: AdminProduct) { const image = primaryImage(product); setEditingId(product.id); setForm({ name: product.name, slug: product.slug, description: product.description || "", price: String(product.price), category_id: product.category_id || "", active: product.active, featured: product.featured, published: product.published, sku: product.product_variants[0]?.sku || "", stock_quantity: String(product.product_variants[0]?.stock_quantity ?? 0), image: image?.image_url || "" }); }
+  async function submit(event: React.FormEvent) { event.preventDefault(); if (!form.name.trim() || !form.slug.trim()) return; try { setSaving(true); setError(""); await saveAdminProduct({ id: editingId, name: form.name.trim(), slug: form.slug.trim(), description: form.description, price: Number(form.price), category_id: form.category_id || null, active: form.active, featured: form.featured, published: form.published, sizes: ["Único"], colors: [], sku: form.sku.trim(), stock_quantity: Number(form.stock_quantity), images: form.image ? [form.image] : [], primaryImage: 0 }); setForm(emptyForm); setEditingId(undefined); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível salvar o produto."); } finally { setSaving(false); } }
+  async function remove(product: AdminProduct) { if (!window.confirm(`Excluir o produto ${product.name}? Esta ação não pode ser desfeita.`)) return; try { setError(""); await deleteAdminProduct(product.id); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível excluir o produto."); } }
+  return <div className="space-y-6">
+    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><p className="text-sm text-muted-foreground">Catálogo real da loja</p><h2 className="mt-1 text-2xl font-semibold">Produtos</h2></div><button type="button" onClick={startNew} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground transition hover:opacity-90">Adicionar produto</button></div>
+    {editingId !== undefined || form.name !== "" ? <form onSubmit={submit} className="grid gap-4 rounded-xl border border-primary/40 bg-card p-5 md:grid-cols-2"><h3 className="text-xl font-semibold md:col-span-2">{editingId ? "Editar produto" : "Novo produto"}</h3><label className="text-sm">Nome<input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm">Slug<input required value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm">Preço<input required type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm">Categoria<select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="">Sem categoria</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="text-sm">Estoque<input type="number" min="0" value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm">SKU<input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm md:col-span-2">Imagem principal (URL)<input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm md:col-span-2">Descrição<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="mt-2 w-full rounded-lg border border-input bg-background p-3" /></label><div className="flex flex-wrap gap-4 text-sm md:col-span-2"><label className="flex items-center gap-2"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />Ativo</label><label className="flex items-center gap-2"><input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />Publicado</label><label className="flex items-center gap-2"><input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} />Destaque</label></div><div className="flex gap-3 md:col-span-2"><button disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{saving ? "Salvando..." : editingId ? "Atualizar produto" : "Salvar produto"}</button><button type="button" onClick={startNew} className="rounded-lg border border-border px-4 py-2 text-sm">Cancelar</button></div></form> : null}
+    <div className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-[1fr_12rem_10rem]"><label className="text-sm font-medium">Buscar produto<input aria-label="Buscar produto" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Nome ou slug" className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm font-medium">Categoria<select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todas</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="text-sm font-medium">Status<select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todos</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></label></div>
+    {error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full min-w-[820px] text-left text-sm"><thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Categoria</th><th className="p-4">Preço</th><th className="p-4">Estoque</th><th className="p-4">Status</th><th className="p-4">Ações</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando produtos...</td></tr> : visible.length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum produto encontrado.</td></tr> : visible.map((product) => { const image = primaryImage(product); const stock = product.product_variants.reduce((sum, variant) => sum + variant.stock_quantity, 0); return <tr key={product.id} className="border-b border-border transition hover:bg-muted/50 last:border-0"><td className="p-4"><div className="flex items-center gap-3"><div className="h-14 w-12 overflow-hidden rounded-lg border border-border bg-muted">{image ? <img src={image.image_url} alt={image.alt_text || product.name} className="h-full w-full object-cover" /> : null}</div><div><p className="font-medium">{product.name}</p><p className="text-xs text-muted-foreground">{product.slug}</p></div></div></td><td className="p-4 text-muted-foreground">{categoryName(product.category_id)}</td><td className="p-4">R$ {product.price.toFixed(2)}</td><td className="p-4">{stock}</td><td className="p-4">{product.active ? "Ativo" : "Inativo"}</td><td className="p-4"><button type="button" onClick={() => edit(product)} className="mr-3 text-primary hover:underline">Editar</button><button type="button" onClick={() => void remove(product)} className="text-destructive hover:underline">Excluir</button></td></tr>; })}</tbody></table></div>
+    <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground"><span>{filtered.length} produto(s) · Página {page} de {totalPages}</span><div className="flex gap-2"><button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="rounded-lg border border-border px-3 py-2 disabled:opacity-40">Anterior</button><button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} className="rounded-lg border border-border px-3 py-2 disabled:opacity-40">Próxima</button></div></div>
   </div>;
 }
 
