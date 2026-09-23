@@ -3,8 +3,7 @@ import { ArrowLeft, ArrowRight, CreditCard, Headphones, ShieldCheck, Truck } fro
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { ProductGrid } from "../../store-ui";
-import { formatPrice } from "../data/products";
-import { fetchMappedPublishedProducts } from "../../catalog-service";
+import { formatPrice, fetchMappedPublishedProducts } from "../../catalog-service";
 import { Link } from "@tanstack/react-router";
 import { SiteNavigation } from "../components/site-navigation";
 
@@ -25,7 +24,7 @@ export const Route = createFileRoute("/")({
 // IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 type HomeSection = { id: string; title: string; type: "Categoria" | "Destaques" | "Mais vendidos" | "Produtos" | "Personalizada"; active: boolean; sort_order: number; category_id?: string; product_ids?: string[]; product_sort?: "recent" | "price_desc" | "price_asc"; product_page?: number }; 
 
-function HomeConfiguredSections({ sections, products, categories, bestSellerIds, loading }: { sections: HomeSection[]; products: Array<import("../data/products").Product>; categories: Array<{ id: string; name: string; image_url: string | null }>; bestSellerIds: string[]; loading: boolean }) {
+function HomeConfiguredSections({ sections, products, categories, bestSellerIds, loading }: { sections: HomeSection[]; products: Array<import("../../catalog-service").Product>; categories: Array<{ id: string; name: string; image_url: string | null }>; bestSellerIds: string[]; loading: boolean }) {
   return <div>{sections.map((section) => {
     const items = section.type === "Mais vendidos" ? products.filter((product) => product.active !== false && bestSellerIds.includes(product.id)).sort((a, b) => bestSellerIds.indexOf(a.id) - bestSellerIds.indexOf(b.id)).slice(0, 8) : (section.type === "Destaques" || section.type === "Personalizada") ? (section.product_ids ?? []).map((id) => products.find((product) => product.id === id)).filter((product): product is (typeof products)[number] => Boolean(product) && product.active !== false).slice(0, section.type === "Destaques" ? 10 : undefined) : section.type === "Produtos" ? [...products.filter((product) => product.active !== false && (section.product_ids ?? []).includes(product.id))].sort((a, b) => section.product_sort === "price_desc" ? b.price - a.price : section.product_sort === "price_asc" ? a.price - b.price : 0).slice((section.product_page ?? 0) * 20, (section.product_page ?? 0) * 20 + 20) : [];
     if (section.type === "Categoria") return <section key={section.id} className="border-t border-border/50 bg-card px-6 py-24 md:py-32"><div className="mx-auto max-w-7xl"><p className="mb-4 text-xs uppercase tracking-[0.3em] text-primary">Curadoria</p><h2 className="text-4xl font-semibold tracking-tight md:text-6xl">{section.title}<span className="text-primary">.</span></h2>{categories.filter((category) => !section.category_id || category.id === section.category_id).length > 0 ? <div className="mt-12 flex gap-5 overflow-x-auto pb-4">{categories.filter((category) => !section.category_id || category.id === section.category_id).map((category) => <a key={category.id} href="#novidades" className="min-w-32 text-center"><div className="mx-auto aspect-square overflow-hidden rounded-full border border-border bg-muted">{category.image_url ? <img src={category.image_url} alt={category.name} className="h-full w-full object-cover" /> : null}</div><h3 className="mt-4 text-sm">{category.name}</h3></a>)}</div> : <p className="mt-8 text-sm text-muted-foreground">Nenhuma categoria disponível no momento.</p>}</div></section>;

@@ -3,7 +3,7 @@ import { ProductGrid } from "../../store-ui";
 import { useEffect, useState } from "react";
 import { SiteNavigation } from "../components/site-navigation";
 import { getCustomerAccount, toggleFavorite } from "../lib/customer-account";
-import { type Product } from "../data/products";
+import type { Product } from "../../catalog-service";
 import { fetchMappedPublishedProducts } from "../../catalog-service";
 
 export const Route = createFileRoute("/favoritos")({ component: FavoritesPage });

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StoreShell } from "./store-ui";
-import { formatPrice } from "./src/data/products";
+import { formatPrice } from "./catalog-service";
 import { getOrder } from "./src/lib/orders";
 
 type OrderItemRow = { id: string; product_name: string; product_image: string | null; quantity: number; variation: string | null; subtotal: number };

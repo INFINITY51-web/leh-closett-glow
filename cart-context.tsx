@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { Product } from "./src/data/products";
+import type { Product } from "./catalog-service";
 import { supabase } from "./src/lib/supabase";
 
 export type CartItem = { product: Product; quantity: number; size: string; color: string; variantId?: string };

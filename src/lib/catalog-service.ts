@@ -1,5 +1,7 @@
 import { supabase } from "./supabase";
 
+export const formatPrice = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 export type CatalogProduct = {
   id: string;
   category_id: string | null;
@@ -29,7 +31,7 @@ export type CatalogProduct = {
   }>;
 };
 
-/** Busca o catálogo público. Em caso de configuração ausente, preserva o fallback local da UI. */
+/** Busca exclusivamente produtos publicados no Supabase. */
 export async function fetchPublishedProducts(): Promise<CatalogProduct[]> {
   if (!supabase) return [];
 

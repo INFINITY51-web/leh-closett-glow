@@ -1,8 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Heart, LayoutGrid, Menu, Minus, Plus, Search, ShoppingBag, SlidersHorizontal, UserRound, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { formatPrice, type Product } from "./src/data/products";
-import { fetchActiveCategories, fetchPublishedProducts, type CatalogProduct } from "./catalog-service";
+import { fetchActiveCategories, fetchPublishedProducts, formatPrice, type CatalogProduct } from "./catalog-service";
+import type { Product } from "./catalog-service";
 import { getCartItemKey, useCart } from "./cart-context";
 import { createMercadoPagoCheckout, createOrderNumber, saveOrder, type OrderCustomer } from "./src/lib/orders";
 import { supabase } from "./src/lib/supabase";

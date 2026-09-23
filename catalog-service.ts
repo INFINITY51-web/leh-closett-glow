@@ -1,5 +1,19 @@
 import { supabase } from "./src/lib/supabase";
-import type { Product } from "./src/data/products";
+export type Product = {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  salePrice?: number;
+  available: boolean;
+  colors: string[];
+  sizes: string[];
+  description: string;
+  images: string[];
+  badge?: string;
+};
+
+export const formatPrice = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type CatalogProduct = {
   id: string;
@@ -30,9 +44,9 @@ export type CatalogProduct = {
   }>;
 };
 
-/** Busca o catálogo público. Em caso de configuração ausente, preserva o fallback local da UI. */
+/** Busca exclusivamente produtos publicados no Supabase. */
 export async function fetchPublishedProducts(): Promise<CatalogProduct[]> {
-  if (!supabase) return [];
+  if (!supabase) throw new Error("Supabase não está configurado.");
 
   const { data, error } = await supabase
     .from("products")
