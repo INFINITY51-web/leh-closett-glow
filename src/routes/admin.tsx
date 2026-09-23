@@ -87,6 +87,52 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   </div>;
 }
 
+function OverviewDashboard() {
+  const [period, setPeriod] = useState<"day" | "week" | "month">("week");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [now, setNow] = useState(new Date());
+  const [orders, setOrders] = useState<any[]>([]);
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [refunds, setRefunds] = useState<any[]>([]);
+
+  useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 60000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => { void (async () => {
+    if (!supabase) { setError("Supabase não está configurado."); setLoading(false); return; }
+    try {
+      setLoading(true); setError("");
+      const [orderResult, shipmentResult, refundResult] = await Promise.all([
+        supabase.from("orders").select("id,total,created_at,status,payment_status,order_items(*)"),
+        supabase.from("shipments").select("id,status,order_id"),
+        supabase.from("refunds").select("amount,status,created_at")
+      ]);
+      if (orderResult.error) throw orderResult.error;
+      if (shipmentResult.error) throw shipmentResult.error;
+      if (refundResult.error) throw refundResult.error;
+      setOrders(orderResult.data ?? []); setShipments(shipmentResult.data ?? []); setRefunds(refundResult.data ?? []);
+    } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os indicadores."); }
+    finally { setLoading(false); }
+  })(); }, []);
+
+  const start = new Date();
+  if (period === "day") start.setHours(0, 0, 0, 0);
+  if (period === "week") { start.setDate(start.getDate() - 6); start.setHours(0, 0, 0, 0); }
+  if (period === "month") { start.setDate(1); start.setHours(0, 0, 0, 0); }
+  const paid = (order: any) => ["paid", "approved", "pago", "approved_payment"].includes(String(order.payment_status || "").toLowerCase());
+  const periodOrders = orders.filter((order) => paid(order) && new Date(order.created_at) >= start);
+  const sales = periodOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const totalSales = orders.filter(paid).reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const pending = orders.filter((order) => ["preparing", "processing", "paid", "pago"].includes(String(order.status || "").toLowerCase())).length;
+  const inTransit = shipments.filter((shipment) => ["shipped", "in_transit", "em_transit", "em trânsito"].includes(String(shipment.status || "").toLowerCase())).length;
+  const delivered = shipments.filter((shipment) => ["delivered", "entregue"].includes(String(shipment.status || "").toLowerCase())).length;
+  const refundsTotal = refunds.filter((refund) => !refund.status || !["cancelled", "rejected"].includes(String(refund.status).toLowerCase())).reduce((sum, refund) => sum + Number(refund.amount || 0), 0);
+  const buckets = period === "day" ? 6 : period === "week" ? 7 : 5;
+  const chart = Array.from({ length: buckets }, (_, index) => { const date = new Date(start); if (period === "day") date.setHours(index * 4); else if (period === "week") date.setDate(start.getDate() + index); else date.setDate(1 + index * Math.max(1, Math.floor((new Date().getDate() - 1) / Math.max(1, buckets - 1)))); const next = new Date(date); if (period === "day") next.setHours(date.getHours() + 4); else if (period === "week") next.setDate(date.getDate() + 1); else next.setDate(date.getDate() + 7); return { label: period === "day" ? `${date.getHours()}h` : date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }), value: periodOrders.filter((order) => { const created = new Date(order.created_at); return created >= date && created < next; }).reduce((sum, order) => sum + Number(order.total || 0), 0) }; });
+  const max = Math.max(...chart.map((item) => item.value), 1);
+  const card = (label: string, value: string) => <article className="rounded-xl border border-border bg-card p-5"><p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-3 text-2xl font-semibold tabular-nums">{loading ? "—" : value}</p></article>;
+  return <div className="mt-8 space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Atualizado em {now.toLocaleString("pt-BR")}</p><div className="flex rounded-lg border border-border p-1">{(["day", "week", "month"] as const).map((item) => <button key={item} type="button" onClick={() => setPeriod(item)} className={`rounded-md px-3 py-1.5 text-sm ${period === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{item === "day" ? "Dia" : item === "week" ? "Semana" : "Mês"}</button>)}</div></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{card("Vendas no período", `R$ ${sales.toFixed(2)}`)}{card("Vendas totais", `R$ ${totalSales.toFixed(2)}`)}{card("Aguardando postagem", String(pending))}{card("Em trânsito", String(inTransit))}{card("Entregues", String(delivered))}{card("Total de devoluções", `R$ ${refundsTotal.toFixed(2)}`)}</div><section className="rounded-xl border border-border bg-card p-5"><div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold">Vendas</h2><p className="text-sm text-muted-foreground">Pedidos pagos no período selecionado</p></div><strong className="text-xl">R$ {sales.toFixed(2)}</strong></div><div className="mt-6 flex h-48 items-end gap-2 border-b border-border">{chart.map((item) => <div key={item.label} className="flex flex-1 flex-col items-center gap-2"><div title={`R$ ${item.value.toFixed(2)}`} className="w-full rounded-t-md bg-primary transition-all" style={{ height: `${Math.max(item.value / max * 100, item.value ? 4 : 1)}%` }} /><span className="text-[11px] text-muted-foreground">{item.label}</span></div>)}</div></section></div>;
+}
+
 function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções") => void }) {
   const areas = ["Produtos", "Categorias", "Variantes", "Imagens", "Preços", "Promoções"] as const;
 
