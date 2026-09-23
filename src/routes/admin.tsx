@@ -354,17 +354,40 @@ function InventoryReservationsManager() {
 
 function InventoryManager() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [query, setQuery] = useState("");
+  const [stockFilter, setStockFilter] = useState<"all" | "low" | "zero">("all");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const lowLimit = 5;
 
-  async function load() { try { setLoading(true); setError(""); setProducts(await listAdminProducts()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar o estoque."); } finally { setLoading(false); } }
-  useEffect(() => { void load(); }, []);
-  async function updateStock(product: AdminProduct, variant: AdminProduct["product_variants"][number], value: string) {
-    const quantity = Number(value); if (!Number.isInteger(quantity) || quantity < 0) return;
-    try { setSaving(variant.id); await saveAdminProductVariant({ id: variant.id, product_id: product.id, sku: variant.sku, size: variant.size, color: variant.color, price_override: variant.price_override, stock_quantity: quantity, active: variant.active }); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível alterar o estoque."); } finally { setSaving(null); }
+  async function load() {
+    try { setLoading(true); setError(""); setProducts(await listAdminProducts()); }
+    catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar o estoque."); }
+    finally { setLoading(false); }
   }
-  return <div className="mt-8 space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Variante</th><th className="p-4">Estoque atual</th><th className="p-4">Status</th><th className="p-4">Estoque baixo</th><th className="p-4">Ação</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando estoque...</td></tr> : products.flatMap((product) => product.product_variants.map((variant) => { const low = variant.stock_quantity <= 5; return <tr key={variant.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{product.name}</td><td className="p-4">{variant.sku} · {variant.size || "Sem tamanho"} · {variant.color || "Sem cor"}</td><td className="p-4"><input aria-label={`Estoque de ${variant.sku}`} type="number" min="0" step="1" defaultValue={variant.stock_quantity} onBlur={(event) => void updateStock(product, variant, event.target.value)} className="w-28 rounded-lg border border-input bg-background px-3 py-2" /></td><td className="p-4">{variant.active ? "Ativo" : "Inativo"}</td><td className={`p-4 font-medium ${low ? "text-destructive" : "text-primary"}`}>{low ? "Sim" : "Não"}</td><td className="p-4 text-muted-foreground">{saving === variant.id ? "Salvando..." : "Altere e saia do campo"}</td></tr>; }))}</tbody></table>{!loading && products.every((product) => product.product_variants.length === 0) && <p className="p-8 text-center text-muted-foreground">Nenhuma variante cadastrada para controle de estoque.</p>}</div></div>;
+  useEffect(() => { void load(); }, []);
+
+  const rows = products.flatMap((product) => product.product_variants.map((variant) => ({ product, variant })));
+  const filtered = rows.filter(({ product, variant }) => {
+    const searchable = `${product.name} ${variant.sku}`.toLowerCase();
+    const matchesQuery = searchable.includes(query.toLowerCase());
+    const matchesStock = stockFilter === "all" || (stockFilter === "zero" ? variant.stock_quantity === 0 : variant.stock_quantity > 0 && variant.stock_quantity <= lowLimit);
+    return matchesQuery && matchesStock;
+  });
+  const imageFor = (product: AdminProduct) => product.product_images.find((image) => image.is_primary) ?? product.product_images[0];
+  const totalProducts = products.length;
+  const totalUnits = rows.reduce((total, row) => total + Math.max(0, row.variant.stock_quantity), 0);
+  const lowStock = rows.filter(({ variant }) => variant.stock_quantity > 0 && variant.stock_quantity <= lowLimit).length;
+  const zeroStock = rows.filter(({ variant }) => variant.stock_quantity === 0).length;
+  const metric = (label: string, value: number) => <article className="rounded-xl border border-border bg-card p-5"><p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-3 text-2xl font-semibold tabular-nums">{loading ? "—" : value}</p></article>;
+
+  return <div className="space-y-6">
+    {error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{metric("Total de produtos", totalProducts)}{metric("Unidades disponíveis", totalUnits)}{metric("Variantes com estoque baixo", lowStock)}{metric("Variantes sem estoque", zeroStock)}</div>
+    <div className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-[1fr_12rem]"><label className="text-sm font-medium">Pesquisar produto ou SKU<input aria-label="Pesquisar produto ou SKU no estoque" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome do produto ou SKU" className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm font-medium">Filtrar estoque<select aria-label="Filtrar estoque" value={stockFilter} onChange={(event) => setStockFilter(event.target.value as typeof stockFilter)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todos</option><option value="low">Baixo</option><option value="zero">Zero</option></select></label></div>
+    <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full min-w-[800px] text-left text-sm"><thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Cor</th><th className="p-4">Tamanho</th><th className="p-4">SKU</th><th className="p-4">Estoque atual</th><th className="p-4">Situação</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando estoque...</td></tr> : filtered.length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum item de estoque encontrado.</td></tr> : filtered.map(({ product, variant }) => { const image = imageFor(product); const zero = variant.stock_quantity === 0; const low = !zero && variant.stock_quantity <= lowLimit; return <tr key={variant.id} className="border-b border-border last:border-0"><td className="p-4"><div className="flex items-center gap-3"><div className="h-14 w-12 overflow-hidden rounded-lg border border-border bg-muted">{image ? <img src={image.image_url} alt={image.alt_text || product.name} className="h-full w-full object-cover" /> : null}</div><span className="font-medium">{product.name}</span></div></td><td className="p-4">{variant.color || "—"}</td><td className="p-4">{variant.size || "—"}</td><td className="p-4 font-mono text-xs">{variant.sku}</td><td className="p-4 font-medium">{variant.stock_quantity}</td><td className={`p-4 font-medium ${zero ? "text-destructive" : low ? "text-primary" : "text-muted-foreground"}`}>{zero ? "Estoque zerado" : low ? "Estoque baixo" : "Disponível"}</td></tr>; })}</tbody></table></div>
+    <p className="text-sm text-muted-foreground">{filtered.length} variante(s) encontrada(s). O estoque exibido é o controlado pela LEH para venda.</p>
+  </div>;
 }
 
 function ProductPromotionsManager() {
