@@ -41,6 +41,20 @@ export async function saveAdminProduct(input: { id?: string; name: string; slug:
   if (variants.length) { const { error } = await supabase.from("product_variants").insert(variants); if (error) throw error; }
   const images = input.images.filter(Boolean).map((image_url, index) => ({ product_id: productId, image_url, alt_text: input.name, sort_order: index, is_primary: index === input.primaryImage }));
   if (images.length) { const { error } = await supabase.from("product_images").insert(images); if (error) throw error; }
+  return productId;
+}
+
+export async function uploadAdminProductVideo(productId: string, file: File) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  if (!file.type.startsWith("video/")) throw new Error("Selecione um arquivo de vídeo.");
+  const extension = file.name.split(".").pop()?.toLowerCase() || "mp4";
+  const path = `${productId}/video-${crypto.randomUUID()}.${extension}`;
+  const upload = await supabase.storage.from("product-images").upload(path, file, { upsert: false, contentType: file.type });
+  if (upload.error) throw upload.error;
+  const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+  const result = await supabase.from("products").update({ video_url: data.publicUrl }).eq("id", productId);
+  if (result.error) { await supabase.storage.from("product-images").remove([path]); throw result.error; }
+  return data.publicUrl;
 }
 
 export async function uploadAdminProductImage(productId: string, file: File, altText: string, sortOrder: number, isPrimary: boolean) {
