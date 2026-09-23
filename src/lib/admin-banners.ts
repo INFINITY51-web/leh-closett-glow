@@ -31,3 +31,21 @@ export async function deleteAdminBanner(id: string) {
   const { error } = await supabase.from("banners").delete().eq("id", id);
   if (error) throw error;
 }
+
+export async function getBannerRotationSeconds(): Promise<number> {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const { data, error } = await supabase.from("store_settings").select("appearance").eq("id", "default").maybeSingle();
+  if (error) throw error;
+  const appearance = data?.appearance && typeof data.appearance === "object" ? data.appearance as Record<string, unknown> : {};
+  const value = Number(appearance.banner_rotation_seconds);
+  return Number.isFinite(value) && value >= 1 ? value : 3;
+}
+
+export async function saveBannerRotationSeconds(seconds: number) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const current = await supabase.from("store_settings").select("appearance").eq("id", "default").maybeSingle();
+  if (current.error) throw current.error;
+  const appearance = current.data?.appearance && typeof current.data.appearance === "object" ? current.data.appearance as Record<string, unknown> : {};
+  const { error } = await supabase.from("store_settings").upsert({ id: "default", appearance: { ...appearance, banner_rotation_seconds: Math.max(1, Math.round(seconds)) } });
+  if (error) throw error;
+}

@@ -38,20 +38,21 @@ function Index() {
   const [homeLoading, setHomeLoading] = useState(true);
   const [heroSlide, setHeroSlide] = useState(0);
   const [banners, setBanners] = useState<Array<{ id: string; image_url: string | null; title: string | null; text: string | null; link_url: string | null; sort_order: number }>>([]);
+  const [bannerRotationSeconds, setBannerRotationSeconds] = useState(3);
   const [textAppearance, setTextAppearance] = useState<Record<string, string>>({});
   const [homeSections, setHomeSections] = useState<HomeSection[]>([]);
   const [bestSellerIds, setBestSellerIds] = useState<string[]>([]);
   const [presentation, setPresentation] = useState<Record<string, string>>({});
-  useEffect(() => { fetchMappedPublishedProducts().then(setHomeProducts).catch(() => setHomeProducts([])).finally(() => setHomeLoading(false)); supabase?.from("banners").select("id, image_url, title, text, link_url, sort_order").eq("active", true).order("sort_order").then(({ data }) => setBanners((data ?? []) as Array<{ id: string; image_url: string | null; title: string | null; text: string | null; link_url: string | null; sort_order: number }>)); supabase?.from("store_settings").select("appearance").eq("id", "default").maybeSingle().then(({ data }) => { const appearance = data?.appearance; if (appearance && typeof appearance === "object") { if (appearance.texts && typeof appearance.texts === "object") setTextAppearance(appearance.texts as Record<string, string>); if (Array.isArray(appearance.sections)) setHomeSections(appearance.sections as HomeSection[]); if (appearance.presentation && typeof appearance.presentation === "object") setPresentation(appearance.presentation as Record<string, string>); } }); supabase?.from("order_items").select("product_id, quantity").then(({ data }) => { const totals = new Map<string, number>(); (data ?? []).forEach((item) => { if (item.product_id) totals.set(item.product_id, (totals.get(item.product_id) ?? 0) + Number(item.quantity ?? 0)); }); setBestSellerIds([...totals.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id)); }); }, []);
+  useEffect(() => { fetchMappedPublishedProducts().then(setHomeProducts).catch(() => setHomeProducts([])).finally(() => setHomeLoading(false)); supabase?.from("banners").select("id, image_url, title, text, link_url, sort_order").eq("active", true).order("sort_order").then(({ data }) => setBanners((data ?? []) as Array<{ id: string; image_url: string | null; title: string | null; text: string | null; link_url: string | null; sort_order: number }>)); supabase?.from("store_settings").select("appearance").eq("id", "default").maybeSingle().then(({ data }) => { const appearance = data?.appearance; if (appearance && typeof appearance === "object") { if (appearance.texts && typeof appearance.texts === "object") setTextAppearance(appearance.texts as Record<string, string>); if (Array.isArray(appearance.sections)) setHomeSections(appearance.sections as HomeSection[]); if (appearance.presentation && typeof appearance.presentation === "object") setPresentation(appearance.presentation as Record<string, string>); if (Number(appearance.banner_rotation_seconds) >= 1) setBannerRotationSeconds(Number(appearance.banner_rotation_seconds)); } }); supabase?.from("order_items").select("product_id, quantity").then(({ data }) => { const totals = new Map<string, number>(); (data ?? []).forEach((item) => { if (item.product_id) totals.set(item.product_id, (totals.get(item.product_id) ?? 0) + Number(item.quantity ?? 0)); }); setBestSellerIds([...totals.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id)); }); }, []);
   const heroSlides = [
     { eyebrow: "Nova coleção", title: "Brilhe com", accent: "atitude.", description: "A nova coleção que redefine o brilho urbano da mulher moderna." },
     { eyebrow: "Glow essentials", title: "Sua presença.", accent: "Sua luz.", description: "Peças selecionadas para iluminar cada momento." },
   ];
   useEffect(() => {
     if (banners.length < 2) return;
-    const timer = window.setInterval(() => setHeroSlide((current) => (current + 1) % banners.length), 3000);
+    const timer = window.setInterval(() => setHeroSlide((current) => (current + 1) % banners.length), bannerRotationSeconds * 1000);
     return () => window.clearInterval(timer);
-  }, [banners.length]);
+  }, [banners.length, bannerRotationSeconds]);
   const [homeCategories, setHomeCategories] = useState<Array<{ id: string; name: string; image_url: string | null }>>([]);
   useEffect(() => {
     supabase?.from("categories").select("id, name, image_url").eq("active", true).order("sort_order").order("name")
