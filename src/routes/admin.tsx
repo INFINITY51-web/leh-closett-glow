@@ -393,11 +393,44 @@ function ProductPricesManager() {
 }
 
 function ProductVariantsManager() {
-  const [products, setProducts] = useState<AdminProduct[]>([]); const [productId, setProductId] = useState(""); const [editingId, setEditingId] = useState<string>(); const [form, setForm] = useState({ sku: "", size: "", color: "", price_override: "", stock_quantity: "0", active: true }); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
-  async function load() { try { setLoading(true); setProducts(await listAdminProducts()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar as variantes."); } finally { setLoading(false); } } useEffect(() => { void load(); }, []);
-  const product = products.find((item) => item.id === productId); const reset = () => { setEditingId(undefined); setForm({ sku: "", size: "", color: "", price_override: "", stock_quantity: "0", active: true }); };
-  async function submit(event: React.FormEvent) { event.preventDefault(); if (!productId || !form.sku.trim()) return; try { setSaving(true); await saveAdminProductVariant({ id: editingId, product_id: productId, sku: form.sku.trim(), size: form.size || null, color: form.color || null, price_override: form.price_override ? Number(form.price_override) : null, stock_quantity: Number(form.stock_quantity), active: form.active }); reset(); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível salvar a variante."); } finally { setSaving(false); } }
-  return <div className="space-y-6"><form onSubmit={submit} className="grid gap-3 rounded-xl border border-border bg-card p-5 md:grid-cols-4"><label className="text-sm md:col-span-2">Produto<select value={productId} onChange={(e) => { setProductId(e.target.value); reset(); }} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2"><option value="">Selecione</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="text-sm">SKU<input required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><label className="text-sm">Tamanho<input value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><label className="text-sm">Cor<input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><label className="text-sm">Preço especial<input type="number" step="0.01" value={form.price_override} onChange={(e) => setForm({ ...form, price_override: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><label className="text-sm">Estoque<input type="number" value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label><div className="flex items-end gap-3"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />Ativa</label><button disabled={saving || !productId} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{saving ? "Salvando..." : editingId ? "Atualizar" : "Criar"}</button></div></form>{error && <p className="text-sm text-destructive">{error}</p>}<div className="rounded-xl border border-border bg-card p-5">{loading ? "Carregando variantes..." : !product ? "Selecione um produto." : product.product_variants.length === 0 ? "Nenhuma variante cadastrada." : <div className="space-y-3">{product.product_variants.map((variant) => <div key={variant.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3"><span><strong>{variant.sku}</strong> · {variant.size || "Sem tamanho"} · {variant.color || "Sem cor"}</span><span>{variant.stock_quantity} em estoque · {variant.active ? "Ativa" : "Inativa"}<button type="button" className="ml-4 text-primary" onClick={() => { setEditingId(variant.id); setForm({ sku: variant.sku, size: variant.size || "", color: variant.color || "", price_override: variant.price_override?.toString() || "", stock_quantity: String(variant.stock_quantity), active: variant.active }); }}>Editar</button><button type="button" className="ml-3 text-destructive" onClick={async () => { if (window.confirm("Excluir esta variante?")) { await removeAdminProductVariant(variant.id); await load(); } }}>Excluir</button></span></div>)}</div>}</div></div>;
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [query, setQuery] = useState("");
+  const [productFilter, setProductFilter] = useState("all");
+  const [colorFilter, setColorFilter] = useState("all");
+  const [sizeFilter, setSizeFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function load() {
+    try { setLoading(true); setError(""); setProducts(await listAdminProducts()); }
+    catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar as variantes."); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { void load(); }, []);
+
+  const rows = products.flatMap((product) => product.product_variants.map((variant) => ({ product, variant })));
+  const colors = [...new Set(rows.map(({ variant }) => variant.color).filter(Boolean))] as string[];
+  const sizes = [...new Set(rows.map(({ variant }) => variant.size).filter(Boolean))] as string[];
+  const filtered = rows.filter(({ product, variant }) => {
+    const text = `${product.name} ${variant.sku}`.toLowerCase();
+    return text.includes(query.toLowerCase()) &&
+      (productFilter === "all" || product.id === productFilter) &&
+      (colorFilter === "all" || variant.color === colorFilter) &&
+      (sizeFilter === "all" || variant.size === sizeFilter);
+  });
+  const imageFor = (product: AdminProduct) => product.product_images.find((image) => image.is_primary) ?? product.product_images[0];
+
+  return <div className="space-y-6">
+    <div className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-[1fr_12rem_10rem_10rem]">
+      <label className="text-sm font-medium">Pesquisar<input aria-label="Pesquisar produto ou SKU" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Produto ou SKU" className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label>
+      <label className="text-sm font-medium">Produto<select value={productFilter} onChange={(event) => setProductFilter(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todos</option>{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></label>
+      <label className="text-sm font-medium">Cor<select value={colorFilter} onChange={(event) => setColorFilter(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todas</option>{colors.map((color) => <option key={color} value={color}>{color}</option>)}</select></label>
+      <label className="text-sm font-medium">Tamanho<select value={sizeFilter} onChange={(event) => setSizeFilter(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todos</option>{sizes.map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
+    </div>
+    {error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Cor</th><th className="p-4">Tamanho</th><th className="p-4">SKU</th><th className="p-4">Estoque</th><th className="p-4">Status</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando variantes...</td></tr> : filtered.length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhuma variante cadastrada.</td></tr> : filtered.map(({ product, variant }) => { const image = imageFor(product); return <tr key={variant.id} className="border-b border-border last:border-0"><td className="p-4"><div className="flex items-center gap-3"><div className="h-14 w-12 overflow-hidden rounded-lg border border-border bg-muted">{image ? <img src={image.image_url} alt={image.alt_text || product.name} className="h-full w-full object-cover" /> : null}</div><span className="font-medium">{product.name}</span></div></td><td className="p-4">{variant.color || "—"}</td><td className="p-4">{variant.size || "—"}</td><td className="p-4 font-mono text-xs">{variant.sku}</td><td className="p-4">{variant.stock_quantity}</td><td className="p-4">{variant.active ? "Ativo" : "Inativo"}</td></tr>; })}</tbody></table></div>
+    <p className="text-sm text-muted-foreground">{filtered.length} variante(s) encontrada(s).</p>
+  </div>;
 }
 
 function ProductImagesManager() {
