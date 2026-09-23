@@ -331,15 +331,37 @@ function InventoryAlertsManager() {
 }
 
 function InventoryMovementsManager() {
-  const [movements, setMovements] = useState<InventoryMovement[]>([]);
-  const [products, setProducts] = useState<AdminProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  async function load() { try { setLoading(true); setError(""); const [movementRows, productRows] = await Promise.all([listInventoryMovements(), listAdminProducts()]); setMovements(movementRows); setProducts(productRows); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar as movimentações."); } finally { setLoading(false); } }
+  const [rows, setRows] = useState<any[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  const [from, setFrom] = useState(""); const [to, setTo] = useState("");
+  async function load() {
+    try {
+      setLoading(true); setError("");
+      if (!supabase) throw new Error("Supabase não configurado.");
+      const [movementResult, orderResult, shipmentResult, returnResult, productRows] = await Promise.all([
+        listInventoryMovements(),
+        supabase.from("orders").select("id,order_number,total,status,created_at,order_items(*)").order("created_at", { ascending: false }),
+        supabase.from("shipments").select("id,order_id,status,created_at").order("created_at", { ascending: false }),
+        supabase.from("returns").select("id,order_id,status,created_at,return_items(*)").order("created_at", { ascending: false }),
+        listAdminProducts(),
+      ]);
+      if (orderResult.error) throw orderResult.error; if (shipmentResult.error) throw shipmentResult.error; if (returnResult.error) throw returnResult.error;
+      const variants = new Map(productRows.flatMap((product) => product.product_variants.map((variant) => [variant.id, { product: product.name, variant: `${variant.sku} · ${variant.size || "Sem tamanho"} · ${variant.color || "Sem cor"}` }])));
+      const orders = orderResult.data ?? []; const shipments = shipmentResult.data ?? []; const returns = returnResult.data ?? [];
+      const orderById = new Map(orders.map((order) => [order.id, order]));
+      const result = [
+        ...movementResult.map((item) => { const detail = variants.get(item.variant_id); return { id: `movement-${item.id}`, date: item.created_at, type: item.movement_type === "entry" ? "Entrada de estoque" : item.movement_type === "exit" ? "Saída de estoque" : "Ajuste de estoque", product: detail?.product || "Produto não encontrado", variant: detail?.variant || item.variant_id, quantity: item.quantity, value: null, status: item.note || "Registrada" }; }),
+        ...orders.map((order) => ({ id: `sale-${order.id}`, date: order.created_at, type: "Venda", product: "Pedido", variant: order.order_number || order.id, quantity: (order.order_items || []).reduce((sum: number, item: any) => sum + Number(item.quantity || 0), 0), value: Number(order.total || 0), status: order.status || "—" })),
+        ...shipments.map((shipment) => ({ id: `shipment-${shipment.id}`, date: shipment.created_at, type: ["delivered", "entregue"].includes(String(shipment.status).toLowerCase()) ? "Produtos entregues" : "Produtos enviados", product: "Pedido", variant: orderById.get(shipment.order_id)?.order_number || shipment.order_id, quantity: null, value: null, status: shipment.status || "—" })),
+        ...returns.map((item) => ({ id: `return-${item.id}`, date: item.created_at, type: "Devolução / produtos retornados", product: "Pedido", variant: orderById.get(item.order_id)?.order_number || item.order_id, quantity: (item.return_items || []).reduce((sum: number, entry: any) => sum + Number(entry.quantity || 0), 0) || null, value: null, status: item.status || "—" })),
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setRows(result);
+    } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar o histórico."); } finally { setLoading(false); }
+  }
   useEffect(() => { void load(); }, []);
-  const variants = new Map(products.flatMap((product) => product.product_variants.map((variant) => [variant.id, { product: product.name, variant: `${variant.sku} · ${variant.size || "Sem tamanho"} · ${variant.color || "Sem cor"}` }])));
-  const typeLabels = { entry: "Entrada", exit: "Saída", adjustment: "Ajuste" };
-  return <div className="space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Variante</th><th className="p-4">Quantidade</th><th className="p-4">Tipo</th><th className="p-4">Data</th></tr></thead><tbody>{loading ? <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Carregando movimentações...</td></tr> : movements.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma movimentação registrada.</td></tr> : movements.map((movement) => { const variant = variants.get(movement.variant_id); return <tr key={movement.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{variant?.product || "Produto não encontrado"}</td><td className="p-4">{variant?.variant || movement.variant_id}</td><td className="p-4">{movement.quantity}</td><td className="p-4">{typeLabels[movement.movement_type]}</td><td className="p-4 text-muted-foreground">{new Date(movement.created_at).toLocaleString("pt-BR")}</td></tr>; })}</tbody></table></div></div>;
+  const filtered = rows.filter((row) => { const date = new Date(row.date); const start = from ? new Date(`${from}T00:00:00`) : null; const end = to ? new Date(`${to}T23:59:59`) : null; return (!start || date >= start) && (!end || date <= end); });
+  const sales = filtered.filter((row) => row.type === "Venda"); const totalSales = sales.reduce((sum, row) => sum + Number(row.value || 0), 0);
+  const metric = (label: string, value: string) => <article className="rounded-xl border border-border bg-card p-5"><p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-3 text-2xl font-semibold tabular-nums">{loading ? "—" : value}</p></article>;
+  return <div className="space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{metric("Total de vendas", `R$ ${totalSales.toFixed(2)}`)}{metric("Vendas no período", String(sales.length))}{metric("Entradas de estoque", String(filtered.filter((row) => row.type === "Entrada de estoque").length))}{metric("Saídas de estoque", String(filtered.filter((row) => row.type === "Saída de estoque").length))}</div><div className="grid gap-4 rounded-xl border border-border bg-card p-4 md:grid-cols-[1fr_1fr_auto]"><label className="text-sm font-medium">Data inicial<input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm font-medium">Data final<input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><button type="button" onClick={() => { setFrom(""); setTo(""); }} className="self-end rounded-lg border border-border px-4 py-2 text-sm hover:border-primary hover:text-primary">Limpar período</button></div><div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="p-4">Data e hora</th><th className="p-4">Tipo</th><th className="p-4">Produto</th><th className="p-4">Variante</th><th className="p-4">Quantidade</th><th className="p-4">Valor</th><th className="p-4">Status</th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Carregando histórico...</td></tr> : filtered.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhuma operação encontrada no período.</td></tr> : filtered.map((row) => <tr key={row.id} className="border-b border-border last:border-0"><td className="p-4 text-muted-foreground">{new Date(row.date).toLocaleString("pt-BR")}</td><td className="p-4 font-medium">{row.type}</td><td className="p-4">{row.product}</td><td className="p-4">{row.variant}</td><td className="p-4">{row.quantity ?? "—"}</td><td className="p-4">{row.value == null ? "—" : `R$ ${row.value.toFixed(2)}`}</td><td className="p-4">{row.status}</td></tr>)}</tbody></table></div></div>;
 }
 
 function InventoryReservationsManager() {
