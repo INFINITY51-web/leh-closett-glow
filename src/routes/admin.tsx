@@ -398,6 +398,7 @@ function ProductVariantsManager() {
   const [productFilter, setProductFilter] = useState("all");
   const [colorFilter, setColorFilter] = useState("all");
   const [sizeFilter, setSizeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -416,16 +417,18 @@ function ProductVariantsManager() {
     return text.includes(query.toLowerCase()) &&
       (productFilter === "all" || product.id === productFilter) &&
       (colorFilter === "all" || variant.color === colorFilter) &&
-      (sizeFilter === "all" || variant.size === sizeFilter);
+      (sizeFilter === "all" || variant.size === sizeFilter) &&
+      (statusFilter === "all" || (statusFilter === "active" ? variant.active : !variant.active));
   });
   const imageFor = (product: AdminProduct) => product.product_images.find((image) => image.is_primary) ?? product.product_images[0];
 
   return <div className="space-y-6">
-    <div className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-[1fr_12rem_10rem_10rem]">
+    <div className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-[1fr_12rem_10rem_10rem_10rem]">
       <label className="text-sm font-medium">Pesquisar<input aria-label="Pesquisar produto ou SKU" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Produto ou SKU" className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label>
       <label className="text-sm font-medium">Produto<select value={productFilter} onChange={(event) => setProductFilter(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todos</option>{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></label>
       <label className="text-sm font-medium">Cor<select value={colorFilter} onChange={(event) => setColorFilter(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todas</option>{colors.map((color) => <option key={color} value={color}>{color}</option>)}</select></label>
       <label className="text-sm font-medium">Tamanho<select value={sizeFilter} onChange={(event) => setSizeFilter(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todos</option>{sizes.map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
+      <label className="text-sm font-medium">Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3"><option value="all">Todos</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></label>
     </div>
     {error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="p-4">Produto</th><th className="p-4">Cor</th><th className="p-4">Tamanho</th><th className="p-4">SKU</th><th className="p-4">Estoque</th><th className="p-4">Status</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando variantes...</td></tr> : filtered.length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhuma variante cadastrada.</td></tr> : filtered.map(({ product, variant }) => { const image = imageFor(product); return <tr key={variant.id} className="border-b border-border last:border-0"><td className="p-4"><div className="flex items-center gap-3"><div className="h-14 w-12 overflow-hidden rounded-lg border border-border bg-muted">{image ? <img src={image.image_url} alt={image.alt_text || product.name} className="h-full w-full object-cover" /> : null}</div><span className="font-medium">{product.name}</span></div></td><td className="p-4">{variant.color || "—"}</td><td className="p-4">{variant.size || "—"}</td><td className="p-4 font-mono text-xs">{variant.sku}</td><td className="p-4">{variant.stock_quantity}</td><td className="p-4">{variant.active ? "Ativo" : "Inativo"}</td></tr>; })}</tbody></table></div>
