@@ -24,7 +24,7 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
   return (data ?? []) as AdminProduct[];
 }
 
-export async function saveAdminProduct(input: { id?: string; name: string; slug: string; description: string; price: number; category_id: string | null; active: boolean; featured: boolean; published: boolean; sizes: string[]; colors: string[]; sku: string; stock_quantity: number; images: string[]; primaryImage: number }) {
+export async function saveAdminProduct(input: { id?: string; name: string; slug: string; description: string; price: number; category_id: string | null; active: boolean; featured: boolean; published: boolean; sizes: string[]; colors: string[]; sku: string; stock_quantity: number; images: string[]; primaryImage: number; variantStock?: Record<string, number> }) {
   if (!supabase) throw new Error("Supabase não configurado.");
   const payload = { name: input.name, slug: input.slug, description: input.description || null, price: input.price, category_id: input.category_id || null, active: input.active, featured: input.featured, published: input.published };
   const result = input.id ? await supabase.from("products").update(payload).eq("id", input.id).select("id").single() : await supabase.from("products").insert(payload).select("id").single();
@@ -36,7 +36,7 @@ export async function saveAdminProduct(input: { id?: string; name: string; slug:
     const removed = await supabase.from("product_images").delete().eq("product_id", productId);
     if (removed.error) throw removed.error;
   }
-  const variants = input.sizes.flatMap((size) => (input.colors.length ? input.colors : [null]).map((color) => ({ product_id: productId, sku: input.sku || `${input.slug}-${size}-${color ?? "unica"}`.toUpperCase(), size, color, stock_quantity: input.stock_quantity, active: true })));
+  const variants = input.sizes.flatMap((size) => (input.colors.length ? input.colors : [null]).map((color) => ({ product_id: productId, sku: input.sku || `${input.slug}-${size}-${color ?? "unica"}`.toUpperCase(), size, color, stock_quantity: input.variantStock?.[`${color ?? ""}::${size}`] ?? input.stock_quantity, active: true })));
   if (variants.length) { const { error } = await supabase.from("product_variants").insert(variants); if (error) throw error; }
   const images = input.images.filter(Boolean).map((image_url, index) => ({ product_id: productId, image_url, alt_text: input.name, sort_order: index, is_primary: index === input.primaryImage }));
   if (images.length) { const { error } = await supabase.from("product_images").insert(images); if (error) throw error; }
