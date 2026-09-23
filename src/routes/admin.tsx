@@ -430,6 +430,7 @@ function CategoriesManager() {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | undefined>();
+  const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -441,19 +442,25 @@ function CategoriesManager() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!form.name.trim()) return;
-    try { setSaving(true); setError(""); await saveAdminCategory({ id: editingId, name: form.name.trim(), slug: (editingId ? categories.find((item) => item.id === editingId)?.slug : form.name).toLowerCase().trim().replace(/\\s+/g, "-"), description: form.description.trim() || null, image_url: null, active: form.active, sort_order: editingId ? categories.find((item) => item.id === editingId)?.sort_order ?? 0 : categories.length }); setForm(emptyForm); setEditingId(undefined); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível salvar a categoria."); } finally { setSaving(false); }
+    if (!form.name.trim()) { setError("Informe o nome da categoria."); return; }
+    try {
+      setSaving(true); setError("");
+      const current = editingId ? categories.find((item) => item.id === editingId) : undefined;
+      const slug = (current?.slug || form.name).normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().trim().replace(/\\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      await saveAdminCategory({ id: editingId, name: form.name.trim(), slug, description: form.description.trim() || null, image_url: current?.image_url || null, active: form.active, sort_order: current?.sort_order ?? categories.length });
+      setForm(emptyForm); setEditingId(undefined); setShowForm(false); await load();
+    } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível salvar a categoria."); } finally { setSaving(false); }
   }
   async function toggleActive(category: AdminCategory) { try { setSaving(true); setError(""); await saveAdminCategory({ ...category, active: !category.active }); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível atualizar o status."); } finally { setSaving(false); } }
 
   return <div className="space-y-6">
-    <div className="flex justify-end"><button type="button" onClick={() => { setEditingId(undefined); setForm(emptyForm); }} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground">Adicionar nova categoria</button></div>
-    {editingId || form.name ? <form onSubmit={submit} className="grid gap-4 rounded-xl border border-border bg-card p-5 md:grid-cols-[1fr_1.5fr_auto] md:items-end">
+    <div className="flex justify-end"><button type="button" onClick={() => { setEditingId(undefined); setForm(emptyForm); setShowForm(true); setError(""); }} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground">Adicionar nova categoria</button></div>
+    {showForm ? <form onSubmit={submit} className="grid gap-4 rounded-xl border border-border bg-card p-5 md:grid-cols-[1fr_1.5fr_auto] md:items-end">
       <label className="text-sm">Nome<input aria-label="Nome da categoria" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" required /></label>
       <label className="text-sm">Descrição<input aria-label="Descrição da categoria" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2" /></label>
-      <div className="flex items-center gap-3"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />Ativa</label><button disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{saving ? "Salvando..." : editingId ? "Atualizar" : "Criar"}</button></div>
+      <div className="flex items-center gap-3"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />Ativa</label><button disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{saving ? "Salvando..." : editingId ? "Atualizar" : "Criar"}</button><button type="button" onClick={() => { setShowForm(false); setEditingId(undefined); setForm(emptyForm); }} className="rounded-lg border border-border px-4 py-2 text-sm">Cancelar</button></div>
     </form> : null}
     {error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
-    <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Nome</th><th className="p-4">Produtos vinculados</th><th className="p-4">Status</th><th className="p-4">Ações</th></tr></thead><tbody>{loading ? <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Carregando categorias...</td></tr> : categories.length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma categoria cadastrada.</td></tr> : categories.map((category) => <tr key={category.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{category.name}</td><td className="p-4 text-muted-foreground">{category.product_count ?? 0}</td><td className="p-4">{category.active ? "Ativa" : "Inativa"}</td><td className="p-4"><button type="button" onClick={() => { setEditingId(category.id); setForm({ name: category.name, description: category.description || "", active: category.active }); }} className="mr-3 text-primary hover:underline">Editar</button><button type="button" onClick={() => void toggleActive(category)} className="text-primary hover:underline">{category.active ? "Desativar" : "Ativar"}</button></td></tr>)}</tbody></table></div>
+    <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border text-muted-foreground"><tr><th className="p-4">Nome</th><th className="p-4">Produtos vinculados</th><th className="p-4">Status</th><th className="p-4">Ações</th></tr></thead><tbody>{loading ? <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Carregando categorias...</td></tr> : categories.length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma categoria cadastrada.</td></tr> : categories.map((category) => <tr key={category.id} className="border-b border-border last:border-0"><td className="p-4 font-medium">{category.name}</td><td className="p-4 text-muted-foreground">{category.product_count ?? 0}</td><td className="p-4">{category.active ? "Ativa" : "Inativa"}</td><td className="p-4"><button type="button" onClick={() => { setEditingId(category.id); setShowForm(true); setForm({ name: category.name, description: category.description || "", active: category.active }); setError(""); }} className="mr-3 text-primary hover:underline">Editar</button><button type="button" onClick={() => void toggleActive(category)} className="text-primary hover:underline">{category.active ? "Desativar" : "Ativar"}</button></td></tr>)}</tbody></table></div>
   </div>;
 }
