@@ -118,11 +118,17 @@ export async function deleteAdminProduct(id: string) {
   if (error) throw error;
 }
 
-export async function updateAdminProductPromotion(input: { id: string; active?: boolean; clear?: boolean }) {
+export async function updateAdminProductPromotion(input: { id: string; originalPrice: number; promoPrice: number | null; selectedSizes: string[]; active: boolean }) {
   if (!supabase) throw new Error("Supabase não configurado.");
-  const payload = input.clear ? { compare_at_price: null } : input.active === undefined ? {} : { active: input.active };
-  const { error } = await supabase.from("products").update(payload).eq("id", input.id);
-  if (error) throw error;
+  const productResult = await supabase.from("products").update(input.active ? { price: input.promoPrice, compare_at_price: input.originalPrice } : { price: input.originalPrice, compare_at_price: null }).eq("id", input.id);
+  if (productResult.error) throw productResult.error;
+  const { data: variants, error: variantsError } = await supabase.from("product_variants").select("id, size").eq("product_id", input.id);
+  if (variantsError) throw variantsError;
+  for (const variant of variants ?? []) {
+    const participates = input.active && input.selectedSizes.includes(String(variant.size ?? ""));
+    const result = await supabase.from("product_variants").update({ price_override: participates ? input.promoPrice : null }).eq("id", variant.id);
+    if (result.error) throw result.error;
+  }
 }
 
 export async function updateAdminProductPrice(input: { id: string; price: number; compare_at_price: number | null; variantPrices: Array<{ id: string; price_override: number | null }> }) {
