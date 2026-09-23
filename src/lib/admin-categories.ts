@@ -8,13 +8,20 @@ export type AdminCategory = {
   image_url: string | null;
   active: boolean;
   sort_order: number;
+  product_count?: number;
 };
 
 export async function listAdminCategories(): Promise<AdminCategory[]> {
   if (!supabase) throw new Error("Supabase não configurado.");
-  const { data, error } = await supabase.from("categories").select("id, name, slug, description, image_url, active, sort_order").order("sort_order").order("name");
+  const [{ data, error }, { data: products, error: productsError }] = await Promise.all([
+    supabase.from("categories").select("id, name, slug, description, image_url, active, sort_order").order("sort_order").order("name"),
+    supabase.from("products").select("category_id"),
+  ]);
   if (error) throw error;
-  return (data ?? []) as AdminCategory[];
+  if (productsError) throw productsError;
+  const counts = new Map<string, number>();
+  for (const product of products ?? []) if (product.category_id) counts.set(product.category_id, (counts.get(product.category_id) ?? 0) + 1);
+  return (data ?? []).map((category) => ({ ...category, product_count: counts.get(category.id) ?? 0 })) as AdminCategory[];
 }
 
 export async function saveAdminCategory(input: Omit<AdminCategory, "id"> & { id?: string }) {
