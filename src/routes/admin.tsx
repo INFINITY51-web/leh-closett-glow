@@ -65,7 +65,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     await navigate({ to: "/admin/login", replace: true });
   }
 
-  const sections = ["Visão geral", "Site e Conteúdo", "Produtos", "Estoque", "Pedidos", "Fornecedores", "Logística", "Devoluções", "Financeiro", "Análises", "Clientes", "Configurações"];
+  const sections = ["Visão geral", "Site e Conteúdo", "Produtos", "Estoque", "Alertas", "Pedidos", "Fornecedores", "Logística", "Devoluções", "Financeiro", "Análises", "Clientes", "Configurações"];
 
   return <div className="min-h-screen bg-background text-foreground">
     <header className="border-b border-border bg-card">
@@ -84,7 +84,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
       <main key={section} className="min-w-0">
         <p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Painel administrativo</p>
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{section}</h1>
-        {section === "Visão geral" ? <OverviewDashboard /> : section === "Site e Conteúdo" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Pedidos" ? <OrdersManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
+        {section === "Visão geral" ? <OverviewDashboard /> : section === "Site e Conteúdo" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage /> : section === "Pedidos" ? <OrdersManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
       </main>
     </div>
   </div>;
@@ -318,6 +318,25 @@ function SuppliersManagerLegacy() {
 
 function InventoryArea({ area, onAreaChange }: { area: "Estoque" | "Movimentações" | "Reservas" | "Alertas"; onAreaChange: (area: "Estoque" | "Movimentações" | "Reservas" | "Alertas") => void }) {
   return <div className="mt-8 space-y-6"><nav aria-label="Navegação de Estoque" className="flex flex-wrap gap-2 border-b border-border">{(["Estoque", "Movimentações", "Reservas", "Alertas"] as const).map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}</nav><div key={area}>{area === "Estoque" ? <InventoryManager /> : area === "Movimentações" ? <InventoryMovementsManager /> : area === "Reservas" ? <RealReservationsManager /> : <InventoryAlertsManager />}</div></div>;
+}
+
+function AdminAlertsPage() {
+  const alertAreas = [
+    { title: "Estoque", description: "Alertas de estoque zerado ou baixo aparecerão aqui." },
+    { title: "Reservas", description: "Reservas próximas da expiração aparecerão aqui." },
+    { title: "Pagamentos", description: "Alertas de pagamentos pendentes ou com problema aparecerão aqui." },
+  ];
+
+  return <div className="mt-8 space-y-6">
+    <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">Acompanhe problemas operacionais que exigem atenção. Nenhum alerta é criado enquanto não houver dados reais disponíveis.</p>
+    <div className="grid gap-5 lg:grid-cols-3">
+      {alertAreas.map((area) => <section key={area.title} className="rounded-xl border border-border bg-card p-6">
+        <h2 className="text-xl font-semibold">{area.title}</h2>
+        <div className="mt-5 rounded-lg border border-dashed border-border bg-muted/30 p-5 text-sm text-muted-foreground">Nenhum alerta no momento.</div>
+        <p className="mt-3 text-xs text-muted-foreground">{area.description}</p>
+      </section>)}
+    </div>
+  </div>;
 }
 
 function InventoryAlertsManager() {
