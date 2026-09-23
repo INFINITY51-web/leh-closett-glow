@@ -142,10 +142,14 @@ export async function listAdminShipments() {
   return data ?? [];
 }
 
-export async function upsertAdminShipment(values: { order_id: string; carrier: string; service: string; tracking_code: string; status: string }) {
+export async function upsertAdminShipment(values: { order_id: string; carrier: string; service: string; tracking_code: string; tracking_url?: string | null; status: string; order_item_ids?: string[] }) {
   if (!supabase) throw new Error("Supabase não configurado");
   const { data, error } = await supabase.rpc("admin_upsert_shipment", { p_order_id: values.order_id, p_carrier: values.carrier, p_service: values.service, p_tracking_code: values.tracking_code, p_status: values.status });
   if (error) throw error;
+  if (data && (values.tracking_url || values.order_item_ids?.length)) {
+    const { error: updateError } = await supabase.from("shipments").update({ tracking_url: values.tracking_url || null, order_item_ids: values.order_item_ids ?? [] }).eq("id", data);
+    if (updateError) throw updateError;
+  }
   return data;
 }
 
