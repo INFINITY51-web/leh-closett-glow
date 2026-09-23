@@ -93,6 +93,13 @@ export async function saveAdminProductVariant(input: { id?: string; product_id: 
   return result.data as AdminProduct["product_variants"][number];
 }
 
+export async function updateAdminProductVariantMaintenance(input: { id: string; stock_quantity: number; active: boolean }) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const { data, error } = await supabase.from("product_variants").update({ stock_quantity: input.stock_quantity, active: input.active }).eq("id", input.id).select("id, sku, size, color, price_override, stock_quantity, active").single();
+  if (error) throw error;
+  return data as AdminProduct["product_variants"][number];
+}
+
 export async function removeAdminProductVariant(id: string) {
   if (!supabase) throw new Error("Supabase não configurado.");
   const { error } = await supabase.from("product_variants").delete().eq("id", id);
