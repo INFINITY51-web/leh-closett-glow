@@ -47,6 +47,18 @@ export async function updateInventoryMinimum(variantId: string, minimumQuantity:
   if (error) throw error;
 }
 
+export async function adjustVariantStock(input: { variantId: string; newQuantity: number; movementQuantity: number; movementType: "entry" | "exit" | "adjustment"; note: string }) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  if (!Number.isInteger(input.newQuantity) || input.newQuantity < 0) throw new Error("O estoque não pode ser negativo.");
+  const { error: updateError } = await supabase.from("product_variants").update({ stock_quantity: input.newQuantity }).eq("id", input.variantId);
+  if (updateError) throw updateError;
+  try {
+    await registerInventoryMovement({ variant_id: input.variantId, movement_type: input.movementType, quantity: input.movementQuantity, note: input.note });
+  } catch {
+    // A movimentação é opcional nesta etapa; o saldo já foi salvo na variante.
+  }
+}
+
 export async function listInventoryMovements(variantId?: string): Promise<InventoryMovement[]> {
   if (!supabase) throw new Error("Supabase não configurado.");
   let query = supabase
