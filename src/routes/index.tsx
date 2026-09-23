@@ -33,6 +33,11 @@ function Index() {
     { eyebrow: "Nova coleção", title: "Brilhe com", accent: "atitude.", description: "A nova coleção que redefine o brilho urbano da mulher moderna." },
     { eyebrow: "Glow essentials", title: "Sua presença.", accent: "Sua luz.", description: "Peças selecionadas para iluminar cada momento." },
   ];
+  useEffect(() => {
+    if (banners.length < 2) return;
+    const timer = window.setInterval(() => setHeroSlide((current) => (current + 1) % banners.length), 3000);
+    return () => window.clearInterval(timer);
+  }, [banners.length]);
   const [homeCategories, setHomeCategories] = useState<Array<{ id: string; name: string; image_url: string | null }>>([]);
   useEffect(() => {
     supabase?.from("categories").select("id, name, image_url").eq("active", true).order("sort_order").order("name")
