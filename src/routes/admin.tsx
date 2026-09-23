@@ -7,6 +7,7 @@ import { listInventory, listInventoryMovements, listInventoryReservations, updat
 import { getAdminOrder, listAdminOrders, updateAdminOrderStatus } from "../lib/orders";
 import { supabase } from "../lib/supabase";
 import { AdminSuppliers } from "../components/admin-suppliers";
+import { deleteAdminBanner, listAdminBanners, saveAdminBanner, type Banner } from "../lib/admin-banners";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -51,10 +52,12 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   const [section, setSection] = useState("Visão geral");
   const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções">("Produtos");
   const [inventoryArea, setInventoryArea] = useState<"Estoque" | "Movimentações" | "Reservas" | "Alertas">("Estoque");
+  const [appearanceArea, setAppearanceArea] = useState("Banners");
 
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
     if (nextSection === "Produtos") setProductArea("Produtos");
+    if (nextSection === "Site e Conteúdo") setAppearanceArea("Banners");
   }
 
   async function handleSignOut() {
@@ -81,7 +84,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
       <main key={section} className="min-w-0">
         <p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Painel administrativo</p>
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{section}</h1>
-        {section === "Visão geral" ? <OverviewDashboard /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Pedidos" ? <OrdersManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
+        {section === "Visão geral" ? <OverviewDashboard /> : section === "Site e Conteúdo" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Pedidos" ? <OrdersManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
       </main>
     </div>
   </div>;
@@ -131,6 +134,25 @@ function OverviewDashboard() {
   const max = Math.max(...chart.map((item) => item.value), 1);
   const card = (label: string, value: string) => <article className="rounded-xl border border-border bg-card p-5"><p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-3 text-2xl font-semibold tabular-nums">{loading ? "—" : value}</p></article>;
   return <div className="mt-8 space-y-6">{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Atualizado em {now.toLocaleString("pt-BR")}</p><div className="flex rounded-lg border border-border p-1">{(["day", "week", "month"] as const).map((item) => <button key={item} type="button" onClick={() => setPeriod(item)} className={`rounded-md px-3 py-1.5 text-sm ${period === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{item === "day" ? "Dia" : item === "week" ? "Semana" : "Mês"}</button>)}</div></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{card("Vendas no período", `R$ ${sales.toFixed(2)}`)}{card("Vendas totais", `R$ ${totalSales.toFixed(2)}`)}{card("Aguardando postagem", String(pending))}{card("Em trânsito", String(inTransit))}{card("Entregues", String(delivered))}{card("Total de devoluções", `R$ ${refundsTotal.toFixed(2)}`)}</div><section className="rounded-xl border border-border bg-card p-5"><div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold">Vendas</h2><p className="text-sm text-muted-foreground">Pedidos pagos no período selecionado</p></div><strong className="text-xl">R$ {sales.toFixed(2)}</strong></div><div className="mt-6 flex h-48 items-end gap-2 border-b border-border">{chart.map((item) => <div key={item.label} className="flex flex-1 flex-col items-center gap-2"><div title={`R$ ${item.value.toFixed(2)}`} className="w-full rounded-t-md bg-primary transition-all" style={{ height: `${Math.max(item.value / max * 100, item.value ? 4 : 1)}%` }} /><span className="text-[11px] text-muted-foreground">{item.label}</span></div>)}</div></section></div>;
+}
+
+function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (area: string) => void }) {
+  const areas = ["Banners", "Textos", "Imagens", "Informações da loja", "Rodapé", "Redes sociais", "Políticas", "Configurações visuais"];
+  return <div className="mt-8 space-y-6">
+    <div className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Central de edição da Home</p><p className="mt-1 text-sm text-muted-foreground">Edite o conteúdo publicado no site sem alterar outras áreas do painel.</p></div>
+    <nav aria-label="Editor de aparência" className="flex gap-2 overflow-x-auto border-b border-border pb-px">{areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}</nav>
+    {area === "Banners" ? <BannersEditor /> : <section className="rounded-xl border border-border bg-card p-8"><h2 className="text-xl font-semibold">{area}</h2><p className="mt-2 text-sm text-muted-foreground">Esta área está preparada para receber os dados persistidos do Supabase quando o recurso correspondente estiver disponível.</p></section>}
+  </div>;
+}
+
+function BannersEditor() {
+  const empty = { image_url: "", title: "", text: "", link_url: "", sort_order: 0, active: true };
+  const [rows, setRows] = useState<Banner[]>([]); const [form, setForm] = useState(empty); const [editing, setEditing] = useState<string | undefined>(); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
+  async function load() { try { setLoading(true); setRows(await listAdminBanners()); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os banners."); } finally { setLoading(false); } }
+  useEffect(() => { void load(); }, []);
+  async function submit(event: React.FormEvent) { event.preventDefault(); try { setSaving(true); await saveAdminBanner({ id: editing, ...form, sort_order: Number(form.sort_order) }); setForm(empty); setEditing(undefined); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível salvar o banner."); } finally { setSaving(false); } }
+  async function remove(id: string) { if (!window.confirm("Excluir este banner?")) return; try { await deleteAdminBanner(id); await load(); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível excluir o banner."); } }
+  return <div className="space-y-6"><form onSubmit={submit} className="grid gap-4 rounded-xl border border-border bg-card p-5 md:grid-cols-2"><label className="text-sm">Título<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm">Imagem (URL)<input required value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm md:col-span-2">Texto<textarea rows={3} value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} className="mt-2 w-full rounded-lg border border-input bg-background p-3" /></label><label className="text-sm">Link da ação<input value={form.link_url} onChange={(e) => setForm({ ...form, link_url: e.target.value })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="text-sm">Ordem<input type="number" min="0" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3" /></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />Banner ativo</label><div className="md:col-span-2"><button disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{saving ? "Salvando..." : editing ? "Atualizar banner" : "Adicionar banner"}</button></div></form>{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="grid gap-4 md:grid-cols-2">{loading ? <p className="text-sm text-muted-foreground">Carregando banners...</p> : rows.length === 0 ? <p className="rounded-xl border border-border bg-card p-8 text-sm text-muted-foreground">Nenhum banner cadastrado.</p> : rows.map((banner) => <article key={banner.id} className="overflow-hidden rounded-xl border border-border bg-card"><img src={banner.image_url || ""} alt={banner.title || "Banner da Home"} className="aspect-[16/7] w-full object-cover" /><div className="space-y-3 p-4"><div className="flex items-center justify-between gap-3"><h3 className="font-medium">{banner.title || "Sem título"}</h3><span className="text-xs text-muted-foreground">{banner.active ? "Ativo" : "Inativo"}</span></div><p className="text-sm text-muted-foreground">{banner.text || "Sem texto"}</p><div className="flex gap-4 text-sm"><button type="button" onClick={() => { setEditing(banner.id); setForm({ image_url: banner.image_url || "", title: banner.title || "", text: banner.text || "", link_url: banner.link_url || "", sort_order: banner.sort_order, active: banner.active }); }} className="text-primary hover:underline">Editar</button><button type="button" onClick={() => void remove(banner.id)} className="text-destructive hover:underline">Excluir</button></div></div></article>)}</div></div>;
 }
 
 function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções") => void }) {
