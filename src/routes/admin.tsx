@@ -63,6 +63,15 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   const [alertOrderId, setAlertOrderId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  const sectionDescription: Record<string, string> = {
+    "Visão geral": "Acompanhe vendas, pedidos, envios e devoluções em um único lugar.",
+    Alertas: "Priorize problemas reais de estoque, reservas e pagamentos.",
+    Produtos: "Gerencie o catálogo sem misturar dados operacionais.",
+    Estoque: "Controle variantes, movimentações, reservas e limites de alerta.",
+    Pedidos: "Consulte pedidos, clientes, pagamentos e status de atendimento.",
+    "Site / Aparência": "Edite a experiência publicada na Home e na loja.",
+  };
+
   const sectionTitle = section === "Site / Aparência" ? `Site e Aparência · ${appearanceArea}` : section;
   const breadcrumb = section === "Site / Aparência" ? ["Admin", "Site e Aparência", appearanceArea] : ["Admin", section];
   const headerDescription = sectionDescription[section] || "Administre esta área com segurança a partir dos dados reais da loja.";
@@ -94,15 +103,6 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   ];
 
   const appearanceNavigation: Record<string, string> = { Home: "Home", Banners: "Banners", Textos: "Textos", Seções: "Seções", Imagens: "Imagens", Vídeos: "Vídeos", "Informações da loja": "Informações da loja", Rodapé: "Rodapé", "Redes sociais": "Redes sociais", Políticas: "Políticas", "Cores e tema": "Cores e tema" };
-
-  const sectionDescription: Record<string, string> = {
-    "Visão geral": "Acompanhe vendas, pedidos, envios e devoluções em um único lugar.",
-    Alertas: "Priorize problemas reais de estoque, reservas e pagamentos.",
-    Produtos: "Gerencie o catálogo sem misturar dados operacionais.",
-    Estoque: "Controle variantes, movimentações, reservas e limites de alerta.",
-    Pedidos: "Consulte pedidos, clientes, pagamentos e status de atendimento.",
-    "Site / Aparência": "Edite a experiência publicada na Home e na loja.",
-  };
 
   return <div className="admin-shell min-h-screen bg-slate-100 text-slate-900">
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-950 text-slate-300 transition-transform duration-200 md:translate-x-0 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`} aria-label="Navegação administrativa">
