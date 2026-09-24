@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { AlertTriangle, BarChart3, Boxes, ChevronDown, ChevronRight, CircleDollarSign, ClipboardList, Cog, Eye, FileText, Image, LayoutDashboard, Package, Palette, Settings, ShieldCheck, ShoppingCart, Store, Truck, Users, Video } from "lucide-react";
 import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-auth";
 import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
 import { deleteAdminProduct, listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProduct, uploadAdminProductVideo, saveAdminProductVariant, updateAdminProductPrice, updateAdminProductVariantMaintenance, updateAdminProductPromotion, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
@@ -66,7 +67,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     setSection(nextSection);
     setMobileSidebarOpen(false);
     if (nextSection === "Produtos") setProductArea("Produtos");
-    if (nextSection === "Site / Aparência") setAppearanceArea("Banners");
+    if (nextSection === "Site / Aparência") setAppearanceArea("Home");
   }
 
   function toggleGroup(group: string) {
@@ -79,14 +80,16 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   }
 
   const navigationGroups = [
-    { label: "Visão geral", items: ["Visão geral", "Alertas"] },
-    { label: "Catálogo", items: ["Produtos", "Estoque"] },
-    { label: "Pedidos", items: ["Pedidos", "Envios e Rastreamento", "Devoluções", "Financeiro"] },
-    { label: "Clientes", items: ["Clientes"] },
-    { label: "Fornecedores", items: ["Fornecedores"] },
-    { label: "Site / Aparência", items: ["Site / Aparência"] },
-    { label: "Configurações", items: ["Análises", "Configurações"] },
+    { label: "Visão geral", icon: LayoutDashboard, items: [{ label: "Visão geral", icon: LayoutDashboard }, { label: "Alertas", icon: AlertTriangle }] },
+    { label: "Catálogo", icon: Boxes, items: [{ label: "Produtos", icon: Package }, { label: "Estoque", icon: Boxes }] },
+    { label: "Pedidos", icon: ShoppingCart, items: [{ label: "Pedidos", icon: ClipboardList }, { label: "Envios e Rastreamento", icon: Truck }, { label: "Devoluções", icon: ShieldCheck }, { label: "Financeiro", icon: CircleDollarSign }] },
+    { label: "Clientes", icon: Users, items: [{ label: "Clientes", icon: Users }] },
+    { label: "Fornecedores", icon: Store, items: [{ label: "Fornecedores", icon: Store }] },
+    { label: "Site e Aparência", icon: Palette, items: [{ label: "Home", icon: Eye }, { label: "Banners", icon: Image }, { label: "Textos", icon: FileText }, { label: "Seções", icon: LayoutDashboard }, { label: "Imagens", icon: Image }, { label: "Vídeos", icon: Video }, { label: "Informações da loja", icon: Store }, { label: "Rodapé", icon: FileText }, { label: "Redes sociais", icon: Users }, { label: "Políticas", icon: ShieldCheck }, { label: "Cores e tema", icon: Palette }] },
+    { label: "Configurações", icon: Settings, items: [{ label: "Análises", icon: BarChart3 }, { label: "Configurações", icon: Cog }] },
   ];
+
+  const appearanceNavigation: Record<string, string> = { Home: "Home", Banners: "Banners", Textos: "Textos", Seções: "Seções", Imagens: "Imagens", Vídeos: "Vídeos", "Informações da loja": "Informações da loja", Rodapé: "Rodapé", "Redes sociais": "Redes sociais", Políticas: "Políticas", "Cores e tema": "Cores e tema" };
 
   const sectionDescription: Record<string, string> = {
     "Visão geral": "Acompanhe vendas, pedidos, envios e devoluções em um único lugar.",
@@ -101,7 +104,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-950 text-slate-300 transition-transform duration-200 md:translate-x-0 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`} aria-label="Navegação administrativa">
       <div className="flex h-20 items-center border-b border-slate-800 px-6"><Link to="/admin" className="text-sm font-semibold tracking-[0.18em] text-white">LEH_CLOSETT <span className="text-cyan-400">ADMIN</span></Link></div>
       <div className="flex-1 overflow-y-auto px-4 py-6"><p className="mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Central de controle</p><nav className="space-y-3">
-        {navigationGroups.map((group) => <section key={group.label}><button type="button" onClick={() => toggleGroup(group.label)} aria-expanded={openGroups[group.label] ?? false} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 hover:text-white"><span>{group.label}</span><span aria-hidden="true">{openGroups[group.label] ? "−" : "+"}</span></button>{openGroups[group.label] && <div className="mt-1 space-y-1">{group.items.map((item) => <button key={item} type="button" onClick={() => handleSectionChange(item)} className={`w-full rounded-lg border-l-2 px-3 py-2.5 text-left text-sm transition ${section === item ? "border-cyan-400 bg-slate-800 text-white" : "border-transparent text-slate-400 hover:bg-slate-900 hover:text-white"}`}>{item}</button>)}</div>}</section>)}
+        {navigationGroups.map((group) => { const GroupIcon = group.icon; return <section key={group.label}><button type="button" onClick={() => toggleGroup(group.label)} aria-expanded={openGroups[group.label] ?? false} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 hover:text-white"><span className="flex items-center gap-2"><GroupIcon size={14} />{group.label}</span>{openGroups[group.label] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>{openGroups[group.label] && <div className="mt-1 space-y-1">{group.items.map((item) => { const ItemIcon = item.icon; const active = section === item.label || (section === "Site / Aparência" && group.label === "Site e Aparência" && appearanceArea === item.label); return <button key={item.label} type="button" onClick={() => { if (group.label === "Site e Aparência") { setSection("Site / Aparência"); setAppearanceArea(appearanceNavigation[item.label] ?? "Home"); setMobileSidebarOpen(false); } else handleSectionChange(item.label); }} className={`flex w-full items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-left text-sm transition ${active ? "border-cyan-400 bg-slate-800 text-white" : "border-transparent text-slate-400 hover:bg-slate-900 hover:text-white"}`}><ItemIcon size={16} />{item.label}</button>; })}</div>}</section>; })}
       </nav></div><div className="border-t border-slate-800 p-4"><p className="truncate px-2 text-xs text-slate-500">{session.email}</p><button type="button" onClick={handleSignOut} className="mt-3 w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:border-cyan-400 hover:text-white">Sair do painel</button></div>
     </aside>
     {mobileSidebarOpen && <button type="button" aria-label="Fechar menu" onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 z-30 bg-slate-950/60 md:hidden" />}
@@ -159,7 +162,7 @@ function OverviewDashboard() {
 }
 
 function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (area: string) => void }) {
-  const areas = ["Banners", "Textos", "Seções", "Imagens", "Informações da loja", "Rodapé", "Redes sociais", "Políticas", "Configurações visuais"];
+  const areas = ["Home", "Banners", "Textos", "Seções", "Imagens", "Vídeos", "Informações da loja", "Rodapé", "Redes sociais", "Políticas", "Cores e tema"];
   return <div className="mt-8 space-y-6">
     <div className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Central de edição da Home</p><p className="mt-1 text-sm text-muted-foreground">Edite o conteúdo publicado no site sem alterar outras áreas do painel.</p></div>
     <nav aria-label="Editor de aparência" className="flex gap-2 overflow-x-auto border-b border-border pb-px">{areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}</nav>
