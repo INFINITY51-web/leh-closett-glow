@@ -60,7 +60,6 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   });
   const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções">("Produtos");
   const [inventoryArea, setInventoryArea] = useState<"Estoque" | "Movimentações" | "Reservas" | "Alertas">("Estoque");
-  const [appearanceArea, setAppearanceArea] = useState("Home");
   const [alertOrderId, setAlertOrderId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -73,15 +72,14 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     "Site / Aparência": "Edite a experiência publicada na Home e na loja.",
   };
 
-  const sectionTitle = section === "Site / Aparência" ? `Site e Aparência · ${appearanceArea}` : section;
-  const breadcrumb = section === "Site / Aparência" ? ["Admin", "Site e Aparência", appearanceArea] : ["Admin", section];
+  const sectionTitle = section === "Site / Aparência" ? "Editor do site" : section;
+  const breadcrumb = section === "Site / Aparência" ? ["Admin", "Editor do site"] : ["Admin", section];
   const headerDescription = sectionDescription[section] || "Administre esta área com segurança a partir dos dados reais da loja.";
 
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
     setMobileSidebarOpen(false);
     if (nextSection === "Produtos") setProductArea("Produtos");
-    if (nextSection === "Site / Aparência") setAppearanceArea("Home");
   }
 
   function toggleGroup(group: string) {
@@ -103,19 +101,17 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     { label: "Configurações", icon: Settings, items: [{ label: "Análises", icon: BarChart3 }, { label: "Configurações", icon: Cog }] },
   ];
 
-  const appearanceNavigation: Record<string, string> = { "Editor da Home": "Editor da Home" };
-
   return <div className="admin-shell min-h-screen bg-background text-foreground">
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-950 text-slate-300 transition-transform duration-200 md:translate-x-0 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`} aria-label="Navegação administrativa">
       <div className="flex h-24 items-center border-b border-border px-6"><Link to="/admin" className="flex flex-col text-sm font-medium tracking-[0.18em] text-foreground"><span>LEH_CLOSETT</span><span className="mt-1 text-xs tracking-[0.28em] text-primary">ADMIN STUDIO</span></Link></div>
       <div className="flex-1 overflow-y-auto px-4 py-6"><p className="mb-4 px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">Central de controle</p><nav className="space-y-3">
-        {navigationGroups.map((group) => { const GroupIcon = group.icon; return <section key={group.label}><button type="button" onClick={() => toggleGroup(group.label)} aria-expanded={openGroups[group.label] ?? false} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 hover:text-white"><span className="flex items-center gap-2"><GroupIcon size={14} />{group.label}</span>{openGroups[group.label] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>{openGroups[group.label] && <div className="mt-1 space-y-1">{group.items.map((item) => { const ItemIcon = item.icon; const active = section === item.label || (section === "Site / Aparência" && group.label === "Site e Aparência" && appearanceArea === item.label); return <button key={item.label} type="button" onClick={() => { if (group.label === "Site e Aparência") { setSection("Site / Aparência"); setAppearanceArea(appearanceNavigation[item.label] ?? "Home"); setMobileSidebarOpen(false); } else handleSectionChange(item.label); }} className={`flex w-full items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-left text-sm transition ${active ? "border-cyan-400 bg-slate-800 text-white" : "border-transparent text-slate-400 hover:bg-slate-900 hover:text-white"}`}><ItemIcon size={16} />{item.label}</button>; })}</div>}</section>; })}
+        {navigationGroups.map((group) => { const GroupIcon = group.icon; return <section key={group.label}><button type="button" onClick={() => toggleGroup(group.label)} aria-expanded={openGroups[group.label] ?? false} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 hover:text-white"><span className="flex items-center gap-2"><GroupIcon size={14} />{group.label}</span>{openGroups[group.label] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>{openGroups[group.label] && <div className="mt-1 space-y-1">{group.items.map((item) => { const ItemIcon = item.icon; const active = section === item.label || (section === "Site / Aparência" && group.label === "Site e Aparência" && appearanceArea === item.label); return <button key={item.label} type="button" onClick={() => { if (group.label === "Site e Aparência") { setSection("Site / Aparência"); setMobileSidebarOpen(false); } else handleSectionChange(item.label); }} className={`flex w-full items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-left text-sm transition ${active ? "border-cyan-400 bg-slate-800 text-white" : "border-transparent text-slate-400 hover:bg-slate-900 hover:text-white"}`}><ItemIcon size={16} />{item.label}</button>; })}</div>}</section>; })}
       </nav></div><div className="border-t border-slate-800 p-4"><p className="truncate px-2 text-xs text-slate-500">{session.email}</p><button type="button" onClick={handleSignOut} className="mt-3 w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:border-cyan-400 hover:text-white">Sair do painel</button></div>
     </aside>
     {mobileSidebarOpen && <button type="button" aria-label="Fechar menu" onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 z-30 bg-slate-950/60 md:hidden" />}
     <div className="min-h-screen md:pl-72">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur"><div className="flex min-h-20 flex-wrap items-center justify-between gap-4 px-5 py-4 md:px-10"><div className="flex items-center gap-4"><button type="button" aria-label="Abrir menu" onClick={() => setMobileSidebarOpen(true)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:border-cyan-500 hover:text-cyan-600 md:hidden"><Menu size={20} /></button><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-600">Administração</p><p className="text-sm text-slate-500">Operação LEH_CLOSETT</p></div></div><div className="flex items-center gap-2 sm:gap-3"><label className="relative hidden md:block"><span className="sr-only">Buscar no Admin</span><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input disabled aria-label="Busca do Admin indisponível" placeholder="Buscar produtos, pedidos, clientes..." className="h-10 w-64 cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-500 opacity-80" title="A busca global ainda não está disponível" /></label><button type="button" aria-label="Notificações" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:border-cyan-500 hover:text-cyan-600"><Bell size={18} /></button><div className="hidden border-l border-slate-200 pl-3 text-right sm:block"><p className="max-w-40 truncate text-sm font-medium text-slate-800">{session.email}</p><p className="text-xs text-slate-500">Administrador</p></div><button type="button" onClick={() => void handleSignOut()} aria-label="Sair do painel" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:border-red-300 hover:text-red-600"><LogOut size={18} /></button></div></div></header>
-      <main key={section} className="min-w-0 px-5 py-10 md:px-12 md:py-14"><div className="mb-8 border-b border-slate-200 pb-6"><nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">{breadcrumb.map((item, index) => <span key={`${item}-${index}`} className={index === breadcrumb.length - 1 ? "font-medium text-cyan-600" : ""}>{index > 0 && <span className="mr-2 text-slate-300">/</span>}{item}</span>)}</nav><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end"><div><h1 className="text-4xl font-normal tracking-tight text-foreground md:text-5xl">{sectionTitle}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">{headerDescription}</p></div></div></div>{section === "Visão geral" ? <OverviewDashboard /> : section === "Site / Aparência" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} onOpenOrder={(orderId) => { setSection("Pedidos"); setAlertOrderId(orderId); }} /> : section === "Pedidos" ? <OrdersManagerList initialOrderId={alertOrderId} /> : section === "Envios e Rastreamento" ? <ShipmentsManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-slate-200 bg-white p-8 shadow-sm"><p className="text-slate-500">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}</main>
+      <main key={section} className="min-w-0 px-5 py-10 md:px-12 md:py-14"><div className="mb-8 border-b border-slate-200 pb-6"><nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">{breadcrumb.map((item, index) => <span key={`${item}-${index}`} className={index === breadcrumb.length - 1 ? "font-medium text-cyan-600" : ""}>{index > 0 && <span className="mr-2 text-slate-300">/</span>}{item}</span>)}</nav><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end"><div><h1 className="text-4xl font-normal tracking-tight text-foreground md:text-5xl">{sectionTitle}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">{headerDescription}</p></div></div></div>{section === "Visão geral" ? <OverviewDashboard /> : section === "Site / Aparência" ? <AppearanceArea /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} onOpenOrder={(orderId) => { setSection("Pedidos"); setAlertOrderId(orderId); }} /> : section === "Pedidos" ? <OrdersManagerList initialOrderId={alertOrderId} /> : section === "Envios e Rastreamento" ? <ShipmentsManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-slate-200 bg-white p-8 shadow-sm"><p className="text-slate-500">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}</main>
     </div>
   </div>;
 }
@@ -219,30 +215,11 @@ function HomeControlPanel({ onManage }: { onManage: (area: string) => void }) {
   return <section className="space-y-5" aria-labelledby="home-control-title"><div><h2 id="home-control-title" className="text-xl font-semibold">Controle da Home</h2><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Administre cada tipo de conteúdo separadamente, sem misturar formulários.</p></div>{error && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}{loading ? <div className="rounded-xl border border-border bg-card p-8 text-sm text-muted-foreground">Carregando conteúdo real da Home...</div> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{cards.map((card) => { const Icon = card.icon; const stats = card.getStats(data); return <article key={card.name} className="flex min-h-52 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"><div className="flex items-center justify-between gap-3"><span className="rounded-lg bg-muted p-2 text-primary"><Icon size={19} aria-hidden="true" /></span><span className="text-xs text-muted-foreground">{stats.status}</span></div><h3 className="mt-5 text-base font-semibold">{card.name}</h3><p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{card.description}</p><div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">{stats.summary}</div><button type="button" onClick={() => onManage(card.area)} className="mt-4 self-start rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Gerenciar</button></article>; })}</div>}</section>;
 }
 
-function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (area: string) => void }) {
-  const areas = ["Editor da Home", "Aparência"];
-  const descriptions: Record<string, string> = {
-    "Editor da Home": "Área preparada para uma nova estrutura de edição da Home.",
-    Aparência: "Cores, tipografia e identidade visual com prévia ao vivo.",
-    "Conteúdo da loja": "Informações institucionais, rodapé, redes sociais e políticas.",
-    Banners: "Gerencie imagens, chamadas, ordem e publicação dos banners.",
-    Textos: "Administre os textos, chamadas e CTAs usados na Home.",
-    Seções: "Organize os blocos e produtos exibidos na página inicial.",
-    Imagens: "Consulte as imagens reais já utilizadas pela loja.",
-    Vídeos: "Gerencie vídeos reais armazenados no Storage, com prévia e referência reutilizável.",
-    "Informações da loja": "Atualize os dados institucionais exibidos na loja.",
-    Rodapé: "Administre as informações exibidas no rodapé.",
-    "Redes sociais": "Gerencie os canais sociais vinculados à loja.",
-    Políticas: "Não há conteúdo cadastrado.",
-    "Cores e tema": "Configure a paleta visual sem alterar a aparência pública nesta etapa.",
-  };
-  const renderArea = () => area === "Editor da Home" ? <section className="rounded-xl border border-dashed border-border bg-card p-10 text-center"><h3 className="text-2xl font-semibold tracking-tight">Editor da Home limpo</h3><p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">As funções deste editor foram removidas temporariamente. A nova estrutura será criada em uma próxima etapa.</p></section> : <UnifiedAppearanceEditor />;
-  return <div className="admin-appearance mt-8 min-w-0 space-y-6">
-    <button type="button" onClick={() => onAreaChange("Editor da Home")} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary hover:bg-muted hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">← Voltar para Home</button>
-    <nav aria-label="Navegação de Site e Aparência" className="flex flex-wrap gap-2 border-b border-border pb-px">{areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} aria-current={area === item ? "page" : undefined} className={`rounded-md border-b-2 px-3 py-2 text-left text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}</nav>
-    <header className="border-b border-border pb-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Site e Aparência / Home</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">{area}</h2><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{descriptions[area]}</p></header>
-    <div className="min-w-0">{renderArea()}</div>
-  </div>;
+function AppearanceArea() {
+  return <section className="admin-appearance mt-8 rounded-xl border border-dashed border-border bg-card p-10 text-center">
+    <h2 className="text-2xl font-semibold tracking-tight">Editor do site limpo</h2>
+    <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">As funções de edição e aparência foram removidas temporariamente. Esta página será refeita em uma próxima etapa.</p>
+  </section>;
 }
 
 function UnifiedHomeEditor() { return null; }
