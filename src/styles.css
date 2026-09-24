@@ -139,6 +139,20 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+.admin-shell {
+  --background: oklch(0.96 0.008 250);
+  --foreground: oklch(0.22 0.03 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.03 255);
+  --muted: oklch(0.94 0.01 250);
+  --muted-foreground: oklch(0.48 0.025 255);
+  --border: oklch(0.88 0.015 250);
+  --input: oklch(0.91 0.012 250);
+  --primary: oklch(0.62 0.13 205);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.62 0.13 205);
+}
+
 @layer base {
   html { scroll-behavior: smooth; background: var(--background); }
   body { font-family: var(--site-font-family), sans-serif; min-width: 320px; overflow-x: hidden; letter-spacing: 0; }

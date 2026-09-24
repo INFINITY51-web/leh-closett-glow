@@ -60,9 +60,11 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   const [inventoryArea, setInventoryArea] = useState<"Estoque" | "Movimentações" | "Reservas" | "Alertas">("Estoque");
   const [appearanceArea, setAppearanceArea] = useState("Banners");
   const [alertOrderId, setAlertOrderId] = useState<string | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
+    setMobileSidebarOpen(false);
     if (nextSection === "Produtos") setProductArea("Produtos");
     if (nextSection === "Site / Aparência") setAppearanceArea("Banners");
   }
@@ -95,27 +97,17 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     "Site / Aparência": "Edite a experiência publicada na Home e na loja.",
   };
 
-  return <div className="min-h-screen bg-background text-foreground">
-    <header className="border-b border-border bg-card">
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-4 md:px-8">
-        <div className="flex items-center gap-4"><Link to="/admin" className="text-sm font-semibold tracking-[0.16em]">LEH_CLOSETT <span className="text-primary">GLOW</span></Link><span className="hidden border-l border-border pl-4 text-xs uppercase tracking-wider text-muted-foreground md:inline">Central de controle</span></div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground"><span className="hidden sm:inline">{session.email}</span><button type="button" onClick={handleSignOut} className="rounded-lg border border-border px-3 py-2 transition hover:border-primary hover:text-primary">Sair</button></div>
-      </div>
-    </header>
-    <div className="mx-auto grid max-w-[1440px] gap-8 px-5 py-6 md:grid-cols-[16rem_1fr] md:px-8">
-      <aside className="md:sticky md:top-6 md:self-start" aria-label="Navegação administrativa">
-        <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Menu principal</p>
-        <nav className="space-y-3">
-          {navigationGroups.map((group) => <section key={group.label} className="rounded-xl border border-border/60 bg-card/50 p-2">
-            <button type="button" onClick={() => toggleGroup(group.label)} aria-expanded={openGroups[group.label] ?? false} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"><span>{group.label}</span><span aria-hidden="true">{openGroups[group.label] ? "−" : "+"}</span></button>
-            {openGroups[group.label] && <div className="mt-1 space-y-1">{group.items.map((item) => <button key={item} type="button" onClick={() => handleSectionChange(item)} className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${section === item ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}</div>}
-          </section>)}
-        </nav>
-      </aside>
-      <main key={section} className="min-w-0">
-        <div className="mb-8 border-b border-border pb-6"><p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Admin / {section}</p><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end"><div><h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{section}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{sectionDescription[section] || "Administre esta área com segurança a partir dos dados reais da loja."}</p></div><span className="hidden rounded-full border border-border px-3 py-1 text-xs text-muted-foreground lg:inline">Dados reais · Supabase</span></div></div>
-        {section === "Visão geral" ? <OverviewDashboard /> : section === "Site / Aparência" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} onOpenOrder={(orderId) => { setSection("Pedidos"); setAlertOrderId(orderId); }} /> : section === "Pedidos" ? <OrdersManagerList initialOrderId={alertOrderId} /> : section === "Envios e Rastreamento" ? <ShipmentsManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
-      </main>
+  return <div className="admin-shell min-h-screen bg-slate-100 text-slate-900">
+    <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-950 text-slate-300 transition-transform duration-200 md:translate-x-0 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`} aria-label="Navegação administrativa">
+      <div className="flex h-20 items-center border-b border-slate-800 px-6"><Link to="/admin" className="text-sm font-semibold tracking-[0.18em] text-white">LEH_CLOSETT <span className="text-cyan-400">ADMIN</span></Link></div>
+      <div className="flex-1 overflow-y-auto px-4 py-6"><p className="mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Central de controle</p><nav className="space-y-3">
+        {navigationGroups.map((group) => <section key={group.label}><button type="button" onClick={() => toggleGroup(group.label)} aria-expanded={openGroups[group.label] ?? false} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 hover:text-white"><span>{group.label}</span><span aria-hidden="true">{openGroups[group.label] ? "−" : "+"}</span></button>{openGroups[group.label] && <div className="mt-1 space-y-1">{group.items.map((item) => <button key={item} type="button" onClick={() => handleSectionChange(item)} className={`w-full rounded-lg border-l-2 px-3 py-2.5 text-left text-sm transition ${section === item ? "border-cyan-400 bg-slate-800 text-white" : "border-transparent text-slate-400 hover:bg-slate-900 hover:text-white"}`}>{item}</button>)}</div>}</section>)}
+      </nav></div><div className="border-t border-slate-800 p-4"><p className="truncate px-2 text-xs text-slate-500">{session.email}</p><button type="button" onClick={handleSignOut} className="mt-3 w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:border-cyan-400 hover:text-white">Sair do painel</button></div>
+    </aside>
+    {mobileSidebarOpen && <button type="button" aria-label="Fechar menu" onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 z-30 bg-slate-950/60 md:hidden" />}
+    <div className="min-h-screen md:pl-72">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur"><div className="flex h-20 items-center justify-between gap-4 px-5 md:px-10"><div className="flex items-center gap-4"><button type="button" aria-label="Abrir menu" onClick={() => setMobileSidebarOpen(true)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:border-cyan-500 hover:text-cyan-600 md:hidden">☰</button><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-600">Administração</p><p className="text-sm text-slate-500">Operação LEH_CLOSETT</p></div></div><span className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-500 sm:inline">Dados reais · Supabase</span></div></header>
+      <main key={section} className="min-w-0 px-5 py-8 md:px-10 md:py-10"><div className="mb-8 border-b border-slate-200 pb-6"><p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-600">Admin / {section}</p><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end"><div><h1 className="text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">{section}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">{sectionDescription[section] || "Administre esta área com segurança a partir dos dados reais da loja."}</p></div></div></div>{section === "Visão geral" ? <OverviewDashboard /> : section === "Site / Aparência" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} onOpenOrder={(orderId) => { setSection("Pedidos"); setAlertOrderId(orderId); }} /> : section === "Pedidos" ? <OrdersManagerList initialOrderId={alertOrderId} /> : section === "Envios e Rastreamento" ? <ShipmentsManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-slate-200 bg-white p-8 shadow-sm"><p className="text-slate-500">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}</main>
     </div>
   </div>;
 }
