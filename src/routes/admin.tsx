@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { AlertTriangle, BarChart3, Bell, Boxes, ChevronDown, ChevronRight, CircleDollarSign, ClipboardList, Cog, Eye, FileText, Image, LayoutDashboard, LogOut, Menu, Package, Palette, Search, Settings, ShieldCheck, ShoppingCart, Store, Truck, Users, Video } from "lucide-react";
+import { AlertTriangle, BarChart3, Bell, Boxes, ChevronDown, ChevronRight, CircleDollarSign, ClipboardList, Cog, Eye, FileText, Image, LayoutDashboard, LogOut, Menu, Package, Palette, Search, Settings, ShieldCheck, ShoppingCart, Store, Trash2, Truck, Upload, Users, Video } from "lucide-react";
 import { getAdminSession, signOutAdmin, type AdminSession } from "../lib/admin-auth";
 import { listAdminCategories, removeAdminCategory, saveAdminCategory, type AdminCategory } from "../lib/admin-categories";
 import { deleteAdminProduct, listAdminProducts, removeAdminProductImage, removeAdminProductVariant, saveAdminProduct, uploadAdminProductVideo, saveAdminProductVariant, updateAdminProductPrice, updateAdminProductVariantMaintenance, updateAdminProductPromotion, uploadAdminProductImage, type AdminProduct } from "../lib/admin-products";
@@ -277,21 +277,60 @@ function StorePresentationEditor({ mode = "all" }: { mode?: "all" | "footer" | "
 }
 
 function HomeImagesEditor() {
-  const [images, setImages] = useState<Array<{ id: string; url: string; label: string; source: string }>>([]);
+  type GalleryImage = { id: string; path?: string; url: string; label: string; source: string; createdAt?: string };
+  const bucket = "product-images";
+  const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => { void (async () => {
+  async function loadImages() {
+    if (!supabase) { setError("Supabase não está configurado."); setLoading(false); return; }
     try {
-      const [banners, products] = await Promise.all([listAdminBanners(), listAdminProducts()]);
-      const bannerImages = banners.filter((banner) => banner.image_url).map((banner) => ({ id: `banner-${banner.id}`, url: banner.image_url!, label: banner.title || "Banner da Home", source: "Banners" }));
-      const productImages = products.flatMap((product) => product.product_images.map((image) => ({ id: `product-${image.id}`, url: image.image_url, label: product.name, source: "Produtos" })));
-      setImages([...bannerImages, ...productImages]);
-    } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar as imagens utilizadas pelo site."); }
+      setLoading(true); setError("");
+      const [banners, products, storage] = await Promise.all([
+        listAdminBanners(),
+        listAdminProducts(),
+        supabase.storage.from(bucket).list("admin/gallery", { limit: 100, sortBy: { column: "created_at", order: "desc" } }),
+      ]);
+      if (storage.error) throw storage.error;
+      const referenced = [
+        ...banners.filter((item) => item.image_url).map((item) => ({ id: `banner-${item.id}`, url: item.image_url!, label: item.title || "Banner da Home", source: "Banners" })),
+        ...products.flatMap((product) => product.product_images.map((item) => ({ id: `product-${item.id}`, url: item.image_url, label: product.name, source: "Produtos" }))),
+      ];
+      const stored = (storage.data ?? []).filter((item) => item.id).map((item) => {
+        const path = `admin/gallery/${item.name}`;
+        const { data } = supabase!.storage.from(bucket).getPublicUrl(path);
+        return { id: `storage-${path}`, path, url: data.publicUrl, label: item.name, source: "Galeria", createdAt: item.created_at ?? undefined };
+      });
+      const unique = new Map<string, GalleryImage>();
+      [...stored, ...referenced].forEach((item) => unique.set(item.url, item));
+      setImages([...unique.values()]);
+    } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar a galeria."); }
     finally { setLoading(false); }
-  })(); }, []);
+  }
 
-  return <section className="rounded-xl border border-border bg-card p-5"><h2 className="text-xl font-semibold">Imagens utilizadas pelo site</h2><p className="mt-1 text-sm text-muted-foreground">Visualização das imagens reais já vinculadas a banners e produtos. O cadastro e a remoção continuam nas áreas de origem para evitar listas paralelas.</p>{error && <p className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}{loading ? <p className="mt-5 text-sm text-muted-foreground">Carregando imagens...</p> : images.length === 0 ? <p className="mt-5 rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">Nenhuma imagem armazenada foi encontrada.</p> : <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{images.map((image) => <figure key={image.id} className="overflow-hidden rounded-lg border border-border"><img src={image.url} alt={image.label} className="aspect-[4/3] w-full object-cover" /><figcaption className="p-3"><p className="truncate text-sm font-medium">{image.label}</p><p className="text-xs text-muted-foreground">Origem: {image.source}</p></figcaption></figure>)}</div>}</section>;
+  useEffect(() => { void loadImages(); }, [refreshKey]);
+
+  const isReferenced = (url: string) => images.some((item) => item.url === url && item.source !== "Galeria");
+  async function removeImage(image: GalleryImage) {
+    if (!image.path) { setError("Esta imagem é gerenciada pela área de origem e não pode ser excluída daqui."); return; }
+    if (isReferenced(image.url)) { setError("Esta imagem está vinculada a um conteúdo existente. Remova a referência na área de origem antes de excluir."); return; }
+    if (!window.confirm(`Excluir a imagem ${image.label}?`)) return;
+    if (!supabase) return;
+    const { error: removeError } = await supabase.storage.from(bucket).remove([image.path]);
+    if (removeError) { setError(removeError.message); return; }
+    setMessage("Imagem excluída com sucesso."); setRefreshKey((value) => value + 1);
+  }
+
+  return <section className="space-y-5 rounded-xl border border-border bg-card p-5">
+    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><h2 className="text-xl font-semibold">Galeria de imagens</h2><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Imagens reais disponíveis no Storage e já utilizadas pela loja. URLs não são exibidas como conteúdo principal.</p></div><span className="inline-flex items-center gap-2 text-sm text-muted-foreground"><Upload size={16} /> Envio direto</span></div>
+    <AdminFileUpload bucket={bucket} folder="admin/gallery" kind="image" onUploaded={({ file }) => { setMessage(`${file.name} enviado para a galeria.`); setRefreshKey((value) => value + 1); }} onError={setError} />
+    {error && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    {message && <p role="status" className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">{message}</p>}
+    {loading ? <p className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">Carregando galeria...</p> : images.length === 0 ? <div className="rounded-lg border border-dashed border-border p-8 text-center"><Image className="mx-auto text-muted-foreground" size={28} /><h3 className="mt-3 font-medium">Nenhuma imagem encontrada</h3><p className="mt-1 text-sm text-muted-foreground">Envie uma imagem para disponibilizá-la na galeria.</p></div> : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{images.map((image) => <article key={image.id} className="overflow-hidden rounded-lg border border-border bg-background"><img src={image.url} alt={image.label} className="aspect-[4/3] w-full object-cover" /><div className="space-y-3 p-3"><div><p className="truncate text-sm font-medium" title={image.label}>{image.label}</p><p className="text-xs text-muted-foreground">{image.createdAt ? new Date(image.createdAt).toLocaleDateString("pt-BR") : `Origem: ${image.source}`}</p></div><div className="flex flex-wrap gap-2"><button type="button" className="rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted">Usar/Editar</button>{image.path && <button type="button" onClick={() => void removeImage(image)} className="inline-flex items-center gap-1 rounded-md border border-destructive/40 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10"><Trash2 size={14} />Excluir</button>}</div></div></article>)}</div>}
+  </section>;
 }
 
 function TextAppearanceEditor() {
