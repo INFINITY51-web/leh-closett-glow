@@ -99,11 +99,11 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     { label: "Pedidos", icon: ShoppingCart, items: [{ label: "Pedidos", icon: ClipboardList }, { label: "Envios e Rastreamento", icon: Truck }, { label: "Devoluções", icon: ShieldCheck }, { label: "Financeiro", icon: CircleDollarSign }] },
     { label: "Clientes", icon: Users, items: [{ label: "Clientes", icon: Users }] },
     { label: "Fornecedores", icon: Store, items: [{ label: "Fornecedores", icon: Store }] },
-    { label: "Site e Aparência", icon: Palette, items: [{ label: "Home", icon: Eye }, { label: "Banners", icon: Image }, { label: "Textos", icon: FileText }, { label: "Seções", icon: LayoutDashboard }, { label: "Imagens", icon: Image }, { label: "Vídeos", icon: Video }, { label: "Informações da loja", icon: Store }, { label: "Rodapé", icon: FileText }, { label: "Redes sociais", icon: Users }, { label: "Políticas", icon: ShieldCheck }, { label: "Cores e tema", icon: Palette }] },
+    { label: "Site e Aparência", icon: Palette, items: [{ label: "Editor da Home", icon: Eye }] },
     { label: "Configurações", icon: Settings, items: [{ label: "Análises", icon: BarChart3 }, { label: "Configurações", icon: Cog }] },
   ];
 
-  const appearanceNavigation: Record<string, string> = { Home: "Home", Banners: "Banners", Textos: "Textos", Seções: "Seções", Imagens: "Imagens", Vídeos: "Vídeos", "Informações da loja": "Informações da loja", Rodapé: "Rodapé", "Redes sociais": "Redes sociais", Políticas: "Políticas", "Cores e tema": "Cores e tema" };
+  const appearanceNavigation: Record<string, string> = { "Editor da Home": "Editor da Home" };
 
   return <div className="admin-shell min-h-screen bg-background text-foreground">
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-950 text-slate-300 transition-transform duration-200 md:translate-x-0 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`} aria-label="Navegação administrativa">
@@ -224,9 +224,11 @@ function HomeControlPanel({ onManage }: { onManage: (area: string) => void }) {
 }
 
 function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (area: string) => void }) {
-  const areas = ["Home", "Banners", "Textos", "Seções", "Imagens", "Vídeos", "Informações da loja", "Rodapé", "Redes sociais", "Políticas", "Cores e tema"];
+  const areas = ["Editor da Home", "Aparência", "Conteúdo da loja"];
   const descriptions: Record<string, string> = {
-    Home: "Centralize a administração dos conteúdos publicados na página inicial.",
+    "Editor da Home": "Banners, vídeos, rotação, divisórias, textos e produtos da Home em uma única tela.",
+    Aparência: "Cores, tipografia e identidade visual com prévia ao vivo.",
+    "Conteúdo da loja": "Informações institucionais, rodapé, redes sociais e políticas.",
     Banners: "Gerencie imagens, chamadas, ordem e publicação dos banners.",
     Textos: "Administre os textos, chamadas e CTAs usados na Home.",
     Seções: "Organize os blocos e produtos exibidos na página inicial.",
@@ -238,14 +240,18 @@ function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (a
     Políticas: "Não há conteúdo cadastrado.",
     "Cores e tema": "Configure a paleta visual sem alterar a aparência pública nesta etapa.",
   };
-  const renderArea = () => area === "Home" ? <HomeControlPanel onManage={onAreaChange} /> : area === "Banners" ? <BannersEditor /> : area === "Textos" ? <TextAppearanceEditor /> : area === "Seções" ? <HomeSectionsEditor /> : area === "Imagens" ? <HomeImagesEditor /> : area === "Vídeos" ? <HomeVideosEditor /> : area === "Cores e tema" ? <ThemeColorsEditor /> : area === "Informações da loja" ? <StorePresentationEditor /> : area === "Rodapé" ? <StorePresentationEditor mode="footer" /> : area === "Redes sociais" ? <StorePresentationEditor mode="social" /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-sm text-muted-foreground">Não há conteúdo cadastrado.</p></section>;
+  const renderArea = () => area === "Editor da Home" ? <UnifiedHomeEditor /> : area === "Aparência" ? <UnifiedAppearanceEditor /> : <UnifiedStoreContentEditor />;
   return <div className="admin-appearance mt-8 min-w-0 space-y-6">
-    <button type="button" onClick={() => onAreaChange("Home")} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary hover:bg-muted hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">← Voltar para Home</button>
+    <button type="button" onClick={() => onAreaChange("Editor da Home")} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary hover:bg-muted hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">← Voltar para Home</button>
     <nav aria-label="Navegação de Site e Aparência" className="flex flex-wrap gap-2 border-b border-border pb-px">{areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} aria-current={area === item ? "page" : undefined} className={`rounded-md border-b-2 px-3 py-2 text-left text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}</nav>
     <header className="border-b border-border pb-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Site e Aparência / Home</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">{area}</h2><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{descriptions[area]}</p></header>
     <div className="min-w-0">{renderArea()}</div>
   </div>;
 }
+
+function UnifiedHomeEditor() { return <div className="space-y-10"><section className="rounded-xl border border-primary/30 bg-card p-6"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">01 · Destaques visuais</p><h3 className="mt-2 text-2xl font-semibold">Banners, vídeos e transição</h3><div className="mt-6"><BannersEditor /></div><div className="mt-8 border-t border-border pt-8"><HomeVideosEditor /></div></section><section className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">02 · Estrutura e conteúdo</p><h3 className="mt-2 text-2xl font-semibold">Divisórias, textos e produtos</h3><div className="mt-6"><HomeSectionsEditor /></div><div className="mt-8 border-t border-border pt-8"><TextAppearanceEditor /></div></section></div>; }
+function UnifiedAppearanceEditor() { return <ThemeColorsEditor />; }
+function UnifiedStoreContentEditor() { return <StorePresentationEditor />; }
 
 type HomeSection = { id: string; title: string; type: "Categoria" | "Destaques" | "Mais vendidos" | "Produtos" | "Personalizada"; active: boolean; sort_order: number; category_id?: string; product_ids?: string[]; product_sort?: "recent" | "price_desc" | "price_asc" }; 
 
