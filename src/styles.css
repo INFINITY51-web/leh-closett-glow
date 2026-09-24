@@ -223,4 +223,35 @@
   #lovable-badge {
     display: none !important;
   }
+
+  .admin-appearance {
+    overflow-wrap: anywhere;
+  }
+
+  .admin-appearance input,
+  .admin-appearance select,
+  .admin-appearance textarea {
+    max-width: 100%;
+  }
+
+  .admin-appearance table {
+    max-width: 100%;
+  }
+
+  @media (max-width: 639px) {
+    .admin-appearance nav[aria-label="Navegação de Site e Aparência"] {
+      gap: 0.25rem;
+    }
+
+    .admin-appearance nav[aria-label="Navegação de Site e Aparência"] button {
+      flex: 1 1 auto;
+      min-height: 2.75rem;
+      padding-inline: 0.625rem;
+      font-size: 0.75rem;
+    }
+
+    .admin-appearance button {
+      min-height: 2.5rem;
+    }
+  }
 }
