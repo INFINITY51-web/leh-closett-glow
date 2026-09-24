@@ -59,7 +59,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   });
   const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções">("Produtos");
   const [inventoryArea, setInventoryArea] = useState<"Estoque" | "Movimentações" | "Reservas" | "Alertas">("Estoque");
-  const [appearanceArea, setAppearanceArea] = useState("Banners");
+  const [appearanceArea, setAppearanceArea] = useState("Home");
   const [alertOrderId, setAlertOrderId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -202,10 +202,23 @@ function OverviewDashboard({ onNavigate }: { onNavigate: (target: "produtos" | "
 
 function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (area: string) => void }) {
   const areas = ["Home", "Banners", "Textos", "Seções", "Imagens", "Vídeos", "Informações da loja", "Rodapé", "Redes sociais", "Políticas", "Cores e tema"];
+  const cards: Array<{ name: string; description: string; icon: typeof Eye }> = [
+    { name: "Home", description: "Organize a apresentação e o conteúdo principal da loja.", icon: Eye },
+    { name: "Banners", description: "Controle as imagens e chamadas exibidas na Home.", icon: Image },
+    { name: "Textos", description: "Edite títulos, frases e chamadas da experiência da loja.", icon: FileText },
+    { name: "Seções", description: "Configure os blocos de conteúdo publicados na Home.", icon: LayoutDashboard },
+    { name: "Imagens", description: "Gerencie as imagens já utilizadas pelo site.", icon: Image },
+    { name: "Vídeos", description: "Administre os vídeos vinculados ao catálogo e à loja.", icon: Video },
+    { name: "Informações da loja", description: "Atualize apresentação, contatos e dados públicos.", icon: Store },
+    { name: "Rodapé", description: "Edite as informações exibidas no rodapé do site.", icon: FileText },
+    { name: "Redes sociais", description: "Mantenha os links sociais da loja atualizados.", icon: Users },
+    { name: "Políticas", description: "Acesse e organize as políticas apresentadas ao cliente.", icon: ShieldCheck },
+    { name: "Cores e tema", description: "Controle a identidade visual publicada na loja.", icon: Palette },
+  ];
+  const renderArea = () => area === "Banners" ? <BannersEditor /> : area === "Textos" ? <TextAppearanceEditor /> : area === "Seções" ? <HomeSectionsEditor /> : area === "Imagens" ? <HomeImagesEditor /> : area === "Informações da loja" ? <StorePresentationEditor /> : area === "Rodapé" ? <StorePresentationEditor mode="footer" /> : area === "Redes sociais" ? <StorePresentationEditor mode="social" /> : <section className="rounded-xl border border-border bg-card p-8"><h2 className="text-xl font-semibold">{area}</h2><p className="mt-2 text-sm text-muted-foreground">Esta área será exibida aqui quando houver conteúdo persistido disponível.</p></section>;
   return <div className="mt-8 space-y-6">
-    <div className="rounded-xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">Central de edição da Home</p><p className="mt-1 text-sm text-muted-foreground">Edite o conteúdo publicado no site sem alterar outras áreas do painel.</p></div>
-    <nav aria-label="Editor de aparência" className="flex gap-2 overflow-x-auto border-b border-border pb-px">{areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item}</button>)}</nav>
-    {area === "Banners" ? <BannersEditor /> : area === "Textos" ? <TextAppearanceEditor /> : area === "Seções" ? <HomeSectionsEditor /> : area === "Imagens" ? <HomeImagesEditor /> : area === "Informações da loja" ? <StorePresentationEditor /> : area === "Rodapé" ? <StorePresentationEditor mode="footer" /> : area === "Redes sociais" ? <StorePresentationEditor mode="social" /> : <section className="rounded-xl border border-border bg-card p-8"><h2 className="text-xl font-semibold">{area}</h2><p className="mt-2 text-sm text-muted-foreground">Esta área está preparada para receber os dados persistidos do Supabase quando o recurso correspondente estiver disponível.</p></section>}
+    <nav aria-label="Navegação de Site e Aparência" className="flex flex-wrap gap-2 border-b border-border pb-px">{areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} aria-current={area === item ? "page" : undefined} className={`rounded-md border-b-2 px-3 py-2 text-left text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}</nav>
+    {area === "Home" ? <section aria-labelledby="appearance-center-title" className="space-y-5"><div><h2 id="appearance-center-title" className="text-xl font-semibold">Central de controle</h2><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Escolha uma área para editar somente o conteúdo correspondente.</p></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{cards.map(({ name, description, icon: Icon }) => <article key={name} className="flex min-h-48 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"><div className="flex items-center justify-between gap-3"><span className="rounded-lg bg-muted p-2 text-primary"><Icon size={19} aria-hidden="true" /></span><span className="text-xs text-muted-foreground">Área administrativa</span></div><h3 className="mt-5 text-base font-semibold">{name}</h3><p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{description}</p><button type="button" onClick={() => onAreaChange(name)} className="mt-5 self-start rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Gerenciar</button></article>)}</div></section> : renderArea()}
   </div>;
 }
 
