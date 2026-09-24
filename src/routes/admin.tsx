@@ -224,8 +224,26 @@ function HomeControlPanel({ onManage }: { onManage: (area: string) => void }) {
 
 function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (area: string) => void }) {
   const areas = ["Home", "Banners", "Textos", "Seções", "Imagens", "Vídeos", "Informações da loja", "Rodapé", "Redes sociais", "Políticas", "Cores e tema"];
-  const renderArea = () => area === "Home" ? <HomeControlPanel onManage={onAreaChange} /> : area === "Banners" ? <BannersEditor /> : area === "Textos" ? <TextAppearanceEditor /> : area === "Seções" ? <HomeSectionsEditor /> : area === "Imagens" ? <HomeImagesEditor /> : area === "Informações da loja" ? <StorePresentationEditor /> : area === "Rodapé" ? <StorePresentationEditor mode="footer" /> : area === "Redes sociais" ? <StorePresentationEditor mode="social" /> : <section className="rounded-xl border border-border bg-card p-8"><h2 className="text-xl font-semibold">{area}</h2><p className="mt-2 text-sm text-muted-foreground">Não há conteúdo cadastrado.</p></section>;
-  return <div className="mt-8 space-y-6"><nav aria-label="Navegação de Site e Aparência" className="flex flex-wrap gap-2 border-b border-border pb-px">{areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} aria-current={area === item ? "page" : undefined} className={`rounded-md border-b-2 px-3 py-2 text-left text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}</nav>{renderArea()}</div>;
+  const descriptions: Record<string, string> = {
+    Home: "Centralize a administração dos conteúdos publicados na página inicial.",
+    Banners: "Gerencie imagens, chamadas, ordem e publicação dos banners.",
+    Textos: "Administre os textos, chamadas e CTAs usados na Home.",
+    Seções: "Organize os blocos e produtos exibidos na página inicial.",
+    Imagens: "Consulte as imagens reais já utilizadas pela loja.",
+    Vídeos: "Não há conteúdo cadastrado.",
+    "Informações da loja": "Atualize os dados institucionais exibidos na loja.",
+    Rodapé: "Administre as informações exibidas no rodapé.",
+    "Redes sociais": "Gerencie os canais sociais vinculados à loja.",
+    Políticas: "Não há conteúdo cadastrado.",
+    "Cores e tema": "Não há conteúdo cadastrado.",
+  };
+  const renderArea = () => area === "Home" ? <HomeControlPanel onManage={onAreaChange} /> : area === "Banners" ? <BannersEditor /> : area === "Textos" ? <TextAppearanceEditor /> : area === "Seções" ? <HomeSectionsEditor /> : area === "Imagens" ? <HomeImagesEditor /> : area === "Informações da loja" ? <StorePresentationEditor /> : area === "Rodapé" ? <StorePresentationEditor mode="footer" /> : area === "Redes sociais" ? <StorePresentationEditor mode="social" /> : <section className="rounded-xl border border-border bg-card p-8"><p className="text-sm text-muted-foreground">Não há conteúdo cadastrado.</p></section>;
+  return <div className="mt-8 space-y-6">
+    <button type="button" onClick={() => onAreaChange("Home")} className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">← Voltar para Home</button>
+    <nav aria-label="Navegação de Site e Aparência" className="flex flex-wrap gap-2 border-b border-border pb-px">{areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} aria-current={area === item ? "page" : undefined} className={`rounded-md border-b-2 px-3 py-2 text-left text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}</nav>
+    <header className="border-b border-border pb-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Site e Aparência / Home</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">{area}</h2><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{descriptions[area]}</p></header>
+    {renderArea()}
+  </div>;
 }
 
 type HomeSection = { id: string; title: string; type: "Categoria" | "Destaques" | "Mais vendidos" | "Produtos" | "Personalizada"; active: boolean; sort_order: number; category_id?: string; product_ids?: string[]; product_sort?: "recent" | "price_desc" | "price_asc" }; 
