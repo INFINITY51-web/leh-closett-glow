@@ -222,7 +222,7 @@ function HomeControlPanel({ onManage }: { onManage: (area: string) => void }) {
 function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (area: string) => void }) {
   const areas = ["Editor da Home", "Aparência"];
   const descriptions: Record<string, string> = {
-    "Editor da Home": "Banners, vídeos, rotação, divisórias, textos e produtos da Home em uma única tela.",
+    "Editor da Home": "Área preparada para uma nova estrutura de edição da Home.",
     Aparência: "Cores, tipografia e identidade visual com prévia ao vivo.",
     "Conteúdo da loja": "Informações institucionais, rodapé, redes sociais e políticas.",
     Banners: "Gerencie imagens, chamadas, ordem e publicação dos banners.",
@@ -236,7 +236,7 @@ function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (a
     Políticas: "Não há conteúdo cadastrado.",
     "Cores e tema": "Configure a paleta visual sem alterar a aparência pública nesta etapa.",
   };
-  const renderArea = () => area === "Editor da Home" ? <UnifiedHomeEditor /> : <UnifiedAppearanceEditor />;
+  const renderArea = () => area === "Editor da Home" ? <section className="rounded-xl border border-dashed border-border bg-card p-10 text-center"><h3 className="text-2xl font-semibold tracking-tight">Editor da Home limpo</h3><p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">As funções deste editor foram removidas temporariamente. A nova estrutura será criada em uma próxima etapa.</p></section> : <UnifiedAppearanceEditor />;
   return <div className="admin-appearance mt-8 min-w-0 space-y-6">
     <button type="button" onClick={() => onAreaChange("Editor da Home")} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary hover:bg-muted hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">← Voltar para Home</button>
     <nav aria-label="Navegação de Site e Aparência" className="flex flex-wrap gap-2 border-b border-border pb-px">{areas.map((item) => <button key={item} type="button" onClick={() => onAreaChange(item)} aria-current={area === item ? "page" : undefined} className={`rounded-md border-b-2 px-3 py-2 text-left text-sm transition ${area === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}</nav>
@@ -245,7 +245,7 @@ function AppearanceArea({ area, onAreaChange }: { area: string; onAreaChange: (a
   </div>;
 }
 
-function UnifiedHomeEditor() { return <div className="space-y-10"><section className="rounded-xl border border-primary/30 bg-card p-6"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">01 · Destaques visuais</p><h3 className="mt-2 text-2xl font-semibold">Banners, imagens, vídeos e transição</h3><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Todos os elementos que controlam a apresentação do destaque ficam juntos, com espaçamento próprio para cada etapa.</p><div className="mt-6"><BannersEditor /></div><div className="mt-8 border-t border-border pt-8"><HomeImagesEditor /></div><div className="mt-8 border-t border-border pt-8"><HomeVideosEditor /></div></section><section className="rounded-xl border border-border bg-card p-6"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">02 · Estrutura e conteúdo</p><h3 className="mt-2 text-2xl font-semibold">Divisórias, textos e produtos</h3><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Crie seções, escolha a posição na hierarquia e associe os produtos exibidos em cada bloco.</p><div className="mt-6"><HomeSectionsEditor /></div><div className="mt-8 border-t border-border pt-8"><TextAppearanceEditor /></div></section></div>; }
+function UnifiedHomeEditor() { return null; }
 function UnifiedAppearanceEditor() { return <div className="space-y-8"><ThemeColorsEditor /><section className="border-t border-border pt-8"><StorePresentationEditor /></section></div>; }
 
 type HomeSection = { id: string; title: string; type: "Categoria" | "Destaques" | "Mais vendidos" | "Produtos" | "Personalizada"; active: boolean; sort_order: number; category_id?: string; product_ids?: string[]; product_sort?: "recent" | "price_desc" | "price_asc" }; 
