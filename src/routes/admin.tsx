@@ -50,6 +50,12 @@ function AdminRouteLayout() {
 function AdminDashboard({ session }: { session: AdminSession }) {
   const navigate = useNavigate();
   const [section, setSection] = useState("Visão geral");
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    "Visão geral": true,
+    Catálogo: true,
+    Pedidos: true,
+    "Site / Aparência": true,
+  });
   const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções">("Produtos");
   const [inventoryArea, setInventoryArea] = useState<"Estoque" | "Movimentações" | "Reservas" | "Alertas">("Estoque");
   const [appearanceArea, setAppearanceArea] = useState("Banners");
@@ -58,7 +64,11 @@ function AdminDashboard({ session }: { session: AdminSession }) {
   function handleSectionChange(nextSection: string) {
     setSection(nextSection);
     if (nextSection === "Produtos") setProductArea("Produtos");
-    if (nextSection === "Site e Conteúdo") setAppearanceArea("Banners");
+    if (nextSection === "Site / Aparência") setAppearanceArea("Banners");
+  }
+
+  function toggleGroup(group: string) {
+    setOpenGroups((current) => ({ ...current, [group]: !current[group] }));
   }
 
   async function handleSignOut() {
@@ -66,26 +76,45 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     await navigate({ to: "/admin/login", replace: true });
   }
 
-  const sections = ["Visão geral", "Site e Conteúdo", "Produtos", "Estoque", "Alertas", "Pedidos", "Fornecedores", "Envios e Rastreamento", "Devoluções", "Financeiro", "Análises", "Clientes", "Configurações"];
+  const navigationGroups = [
+    { label: "Visão geral", items: ["Visão geral", "Alertas"] },
+    { label: "Catálogo", items: ["Produtos", "Estoque"] },
+    { label: "Pedidos", items: ["Pedidos", "Envios e Rastreamento", "Devoluções", "Financeiro"] },
+    { label: "Clientes", items: ["Clientes"] },
+    { label: "Fornecedores", items: ["Fornecedores"] },
+    { label: "Site / Aparência", items: ["Site / Aparência"] },
+    { label: "Configurações", items: ["Análises", "Configurações"] },
+  ];
+
+  const sectionDescription: Record<string, string> = {
+    "Visão geral": "Acompanhe vendas, pedidos, envios e devoluções em um único lugar.",
+    Alertas: "Priorize problemas reais de estoque, reservas e pagamentos.",
+    Produtos: "Gerencie o catálogo sem misturar dados operacionais.",
+    Estoque: "Controle variantes, movimentações, reservas e limites de alerta.",
+    Pedidos: "Consulte pedidos, clientes, pagamentos e status de atendimento.",
+    "Site / Aparência": "Edite a experiência publicada na Home e na loja.",
+  };
 
   return <div className="min-h-screen bg-background text-foreground">
     <header className="border-b border-border bg-card">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 md:px-8">
-        <Link to="/admin" className="text-sm font-semibold tracking-[0.16em]">LEH_CLOSETT <span className="text-primary">GLOW</span></Link>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="hidden sm:inline">{session.email}</span>
-          <button type="button" onClick={handleSignOut} className="rounded-lg border border-border px-3 py-2 transition hover:border-primary hover:text-primary">Sair</button>
-        </div>
+      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-4 md:px-8">
+        <div className="flex items-center gap-4"><Link to="/admin" className="text-sm font-semibold tracking-[0.16em]">LEH_CLOSETT <span className="text-primary">GLOW</span></Link><span className="hidden border-l border-border pl-4 text-xs uppercase tracking-wider text-muted-foreground md:inline">Central de controle</span></div>
+        <div className="flex items-center gap-4 text-sm text-muted-foreground"><span className="hidden sm:inline">{session.email}</span><button type="button" onClick={handleSignOut} className="rounded-lg border border-border px-3 py-2 transition hover:border-primary hover:text-primary">Sair</button></div>
       </div>
     </header>
-    <div className="mx-auto grid max-w-7xl gap-8 px-5 py-8 md:grid-cols-[14rem_1fr] md:px-8">
-      <nav aria-label="Navegação administrativa" className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible">
-        {sections.map((item) => <button key={item} type="button" onClick={() => handleSectionChange(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition ${section === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}
-      </nav>
+    <div className="mx-auto grid max-w-[1440px] gap-8 px-5 py-6 md:grid-cols-[16rem_1fr] md:px-8">
+      <aside className="md:sticky md:top-6 md:self-start" aria-label="Navegação administrativa">
+        <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Menu principal</p>
+        <nav className="space-y-3">
+          {navigationGroups.map((group) => <section key={group.label} className="rounded-xl border border-border/60 bg-card/50 p-2">
+            <button type="button" onClick={() => toggleGroup(group.label)} aria-expanded={openGroups[group.label] ?? false} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"><span>{group.label}</span><span aria-hidden="true">{openGroups[group.label] ? "−" : "+"}</span></button>
+            {openGroups[group.label] && <div className="mt-1 space-y-1">{group.items.map((item) => <button key={item} type="button" onClick={() => handleSectionChange(item)} className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${section === item ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>{item}</button>)}</div>}
+          </section>)}
+        </nav>
+      </aside>
       <main key={section} className="min-w-0">
-        <p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Painel administrativo</p>
-        <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{section}</h1>
-        {section === "Visão geral" ? <OverviewDashboard /> : section === "Site e Conteúdo" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} onOpenOrder={(orderId) => { setSection("Pedidos"); setAlertOrderId(orderId); }} /> : section === "Pedidos" ? <OrdersManagerList initialOrderId={alertOrderId} /> : section === "Envios e Rastreamento" ? <ShipmentsManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
+        <div className="mb-8 border-b border-border pb-6"><p className="mb-3 text-xs uppercase tracking-[0.24em] text-primary">Admin / {section}</p><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end"><div><h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{section}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{sectionDescription[section] || "Administre esta área com segurança a partir dos dados reais da loja."}</p></div><span className="hidden rounded-full border border-border px-3 py-1 text-xs text-muted-foreground lg:inline">Dados reais · Supabase</span></div></div>
+        {section === "Visão geral" ? <OverviewDashboard /> : section === "Site / Aparência" ? <AppearanceArea area={appearanceArea} onAreaChange={setAppearanceArea} /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} onOpenOrder={(orderId) => { setSection("Pedidos"); setAlertOrderId(orderId); }} /> : section === "Pedidos" ? <OrdersManagerList initialOrderId={alertOrderId} /> : section === "Envios e Rastreamento" ? <ShipmentsManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-border bg-card p-8"><p className="text-muted-foreground">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}
       </main>
     </div>
   </div>;
