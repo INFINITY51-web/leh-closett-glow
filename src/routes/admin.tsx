@@ -58,7 +58,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     Pedidos: true,
     "Site / Aparência": true,
   });
-  const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções">("Produtos");
+  const [productArea, setProductArea] = useState<"Produtos" | "Categorias" | "Variantes" | "Promoções">("Produtos");
   const [inventoryArea, setInventoryArea] = useState<"Estoque" | "Movimentações" | "Reservas" | "Alertas">("Estoque");
   const [alertOrderId, setAlertOrderId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -447,7 +447,7 @@ function BannersEditor() {
 }
 
 function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções"; onAreaChange: (area: "Produtos" | "Categorias" | "Imagens" | "Variantes" | "Preços" | "Promoções") => void }) {
-  const areas = ["Produtos", "Categorias", "Variantes", "Imagens", "Preços", "Promoções"] as const;
+  const areas = ["Produtos", "Categorias", "Variantes", "Promoções"] as const;
 
   function renderArea() {
     switch (area) {
