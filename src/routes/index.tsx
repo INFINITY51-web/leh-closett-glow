@@ -70,7 +70,7 @@ function Index() {
       <SiteNavigation />
       <main id="inicio">
         <section className="relative min-h-[calc(100svh-1rem)] overflow-hidden border-b border-border bg-card pt-18 md:min-h-[min(920px,100vh)] md:pt-20">
-          {heroImage ? <img src={heroImage} alt="Campanha da nova coleção LEH_CLOSETT GLOW" className="absolute inset-0 h-full w-full object-cover object-center md:object-[center_22%]" /> : null}
+          {heroImage ? (/\.(mp4|webm|ogg)(\?|$)/i.test(heroImage) ? <video src={heroImage} autoPlay muted loop playsInline aria-label="Vídeo da campanha da nova coleção LEH_CLOSETT GLOW" className="absolute inset-0 h-full w-full object-cover object-center md:object-[center_22%]" /> : <img src={heroImage} alt="Campanha da nova coleção LEH_CLOSETT GLOW" className="absolute inset-0 h-full w-full object-cover object-center md:object-[center_22%]" />) : null}
           <div className="absolute inset-0 bg-gradient-to-b from-background/35 via-background/10 to-background" />
           <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/25 to-transparent" />
           <div className="absolute -right-28 top-16 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
