@@ -67,6 +67,15 @@ export function AdminFileUpload({
     }
     setFile(nextFile); setStatus("idle"); setMessage("");
     setPreview(nextFile.type.startsWith("image/") ? URL.createObjectURL(nextFile) : "");
+    if (nextFile.type.startsWith("video/")) {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(video.src);
+        if (video.duration > 120) setMessage("O vídeo ultrapassa 2 minutos. Apenas os primeiros 2 minutos serão considerados na publicação.");
+      };
+      video.src = URL.createObjectURL(nextFile);
+    }
   }
 
   async function uploadFile() {
@@ -89,7 +98,7 @@ export function AdminFileUpload({
   return <div className="space-y-3 rounded-lg border border-border bg-card p-4">
     <input ref={inputRef} type="file" className="sr-only" accept={kind === "image" ? "image/jpeg,image/png,image/webp" : kind === "video" ? "video/mp4,video/webm,video/ogg" : "image/jpeg,image/png,image/webp,video/mp4,video/webm,video/ogg"} onChange={(event) => selectFile(event.target.files?.[0])} disabled={disabled || status === "uploading"} />
     <button type="button" onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); selectFile(event.dataTransfer.files[0]); }} disabled={disabled || status === "uploading"} className={`flex min-h-28 w-full flex-col items-center justify-center rounded-md border border-dashed px-4 py-5 text-center transition-colors hover:border-primary hover:bg-muted/50 ${dragging ? "border-primary bg-muted" : "border-border"}`}>
-      <span className="text-sm font-medium">+ Selecionar arquivo</span><span className="mt-1 text-xs text-muted-foreground">Clique ou arraste o arquivo para esta área</span>
+      <span className="text-sm font-medium">+ Selecionar arquivo</span><span className="mt-1 text-xs text-muted-foreground">Até 20 MB · vídeos com no máximo 2 minutos</span>
     </button>
     {file && <div className="flex flex-col gap-4 rounded-md border border-border p-3 sm:flex-row sm:items-center">
       {preview ? <img src={preview} alt={`Prévia de ${file.name}`} className="h-20 w-28 rounded-md object-cover" /> : <div className="flex h-20 w-28 items-center justify-center rounded-md bg-muted text-xs text-muted-foreground">Vídeo</div>}
