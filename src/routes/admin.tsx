@@ -72,8 +72,8 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     "Site / Aparência": "Edite a experiência publicada na Home e na loja.",
   };
 
-  const sectionTitle = section === "Site / Aparência" ? "Editor do site" : section;
-  const breadcrumb = section === "Site / Aparência" ? ["Admin", "Editor do site"] : ["Admin", section];
+  const sectionTitle = section === "Site / Aparência" ? "EDITOR DA HOME" : section;
+  const breadcrumb = section === "Site / Aparência" ? ["Admin", "EDITOR DA HOME"] : ["Admin", section];
   const headerDescription = sectionDescription[section] || "Administre esta área com segurança a partir dos dados reais da loja.";
 
   function handleSectionChange(nextSection: string) {
@@ -111,7 +111,7 @@ function AdminDashboard({ session }: { session: AdminSession }) {
     {mobileSidebarOpen && <button type="button" aria-label="Fechar menu" onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 z-30 bg-slate-950/60 md:hidden" />}
     <div className="min-h-screen md:pl-72">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur"><div className="flex min-h-20 flex-wrap items-center justify-between gap-4 px-5 py-4 md:px-10"><div className="flex items-center gap-4"><button type="button" aria-label="Abrir menu" onClick={() => setMobileSidebarOpen(true)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:border-cyan-500 hover:text-cyan-600 md:hidden"><Menu size={20} /></button><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-600">Administração</p><p className="text-sm text-slate-500">Operação LEH_CLOSETT</p></div></div><div className="flex items-center gap-2 sm:gap-3"><label className="relative hidden md:block"><span className="sr-only">Buscar no Admin</span><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input disabled aria-label="Busca do Admin indisponível" placeholder="Buscar produtos, pedidos, clientes..." className="h-10 w-64 cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-500 opacity-80" title="A busca global ainda não está disponível" /></label><button type="button" aria-label="Notificações" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:border-cyan-500 hover:text-cyan-600"><Bell size={18} /></button><div className="hidden border-l border-slate-200 pl-3 text-right sm:block"><p className="max-w-40 truncate text-sm font-medium text-slate-800">{session.email}</p><p className="text-xs text-slate-500">Administrador</p></div><button type="button" onClick={() => void handleSignOut()} aria-label="Sair do painel" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:border-red-300 hover:text-red-600"><LogOut size={18} /></button></div></div></header>
-      <main key={section} className="min-w-0 px-5 py-10 md:px-12 md:py-14"><div className="mb-8 border-b border-slate-200 pb-6"><nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">{breadcrumb.map((item, index) => <span key={`${item}-${index}`} className={index === breadcrumb.length - 1 ? "font-medium text-cyan-600" : ""}>{index > 0 && <span className="mr-2 text-slate-300">/</span>}{item}</span>)}</nav><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end"><div><h1 className="text-4xl font-normal tracking-tight text-foreground md:text-5xl">{sectionTitle}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">{headerDescription}</p></div></div></div>{section === "Visão geral" ? <OverviewDashboard /> : section === "Site / Aparência" ? <AppearanceArea /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} onOpenOrder={(orderId) => { setSection("Pedidos"); setAlertOrderId(orderId); }} /> : section === "Pedidos" ? <OrdersManagerList initialOrderId={alertOrderId} /> : section === "Envios e Rastreamento" ? <ShipmentsManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-slate-200 bg-white p-8 shadow-sm"><p className="text-slate-500">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}</main>
+      <main key={section} className="min-w-0 px-5 py-10 md:px-12 md:py-14"><div className="mb-8 border-b border-slate-200 pb-6"><nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">{breadcrumb.map((item, index) => <span key={`${item}-${index}`} className={index === breadcrumb.length - 1 ? "font-medium text-cyan-600" : ""}>{index > 0 && <span className="mr-2 text-slate-300">/</span>}{item}</span>)}</nav><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end"><div><h1 className="text-4xl font-normal tracking-tight text-foreground md:text-5xl">{sectionTitle}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">{headerDescription}</p></div></div></div>{section === "Visão geral" ? <OverviewDashboard /> : section === "Site / Aparência" ? <UnifiedHomeEditor /> : section === "Produtos" ? <ProductsArea area={productArea} onAreaChange={setProductArea} /> : section === "Estoque" ? <InventoryArea area={inventoryArea} onAreaChange={setInventoryArea} /> : section === "Alertas" ? <AdminAlertsPage onOpenArea={(area) => { setSection("Estoque"); setInventoryArea(area); }} onOpenOrder={(orderId) => { setSection("Pedidos"); setAlertOrderId(orderId); }} /> : section === "Pedidos" ? <OrdersManagerList initialOrderId={alertOrderId} /> : section === "Envios e Rastreamento" ? <ShipmentsManager /> : section === "Fornecedores" ? <SuppliersManager /> : <section className="mt-8 rounded-xl border border-slate-200 bg-white p-8 shadow-sm"><p className="text-slate-500">Selecione uma função no menu para visualizar e gerenciar esta área.</p></section>}</main>
     </div>
   </div>;
 }
@@ -222,7 +222,62 @@ function AppearanceArea() {
   </section>;
 }
 
-function UnifiedHomeEditor() { return null; }
+type HomeEditorBlock = { id: string; number: string; name: string; description: string; active: boolean; divider?: boolean };
+
+const initialHomeEditorBlocks: HomeEditorBlock[] = [
+  { id: "header", number: "01", name: "Cabeçalho / Navegação", description: "Identidade, navegação principal e acessos da loja.", active: true },
+  { id: "hero", number: "02", name: "Hero / Banners", description: "Imagem, vídeo, frase, título e configurações de transição do destaque.", active: true },
+  { id: "divider-1", number: "03", name: "Divisória", description: "Separação visual entre o destaque e os produtos em evidência.", active: true, divider: true },
+  { id: "featured", number: "04", name: "Produtos em destaque", description: "Produtos escolhidos para aparecer primeiro na vitrine.", active: true },
+  { id: "divider-2", number: "05", name: "Divisória", description: "Separação visual entre destaques e promoções.", active: true, divider: true },
+  { id: "promotions", number: "06", name: "Produtos em promoção", description: "Ofertas e produtos com preço promocional.", active: true },
+  { id: "divider-3", number: "07", name: "Divisória", description: "Separação visual antes das categorias.", active: true, divider: true },
+  { id: "categories", number: "08", name: "Categorias", description: "Categorias disponíveis para orientar a descoberta de produtos.", active: true },
+  { id: "divider-4", number: "09", name: "Divisória", description: "Separação visual antes do banner institucional.", active: true, divider: true },
+  { id: "banner-text", number: "10", name: "Banner + frase", description: "Imagem de apoio e frase institucional da Home.", active: true },
+  { id: "divider-5", number: "11", name: "Divisória", description: "Separação visual antes dos canais de atendimento.", active: true, divider: true },
+  { id: "social", number: "12", name: "Redes sociais / Contato / Suporte", description: "Canais de contato, redes sociais e suporte ao cliente.", active: true },
+  { id: "divider-6", number: "13", name: "Divisória", description: "Separação visual antes do encerramento da Home.", active: true, divider: true },
+  { id: "footer", number: "14", name: "Rodapé", description: "Informações finais, links institucionais e direitos autorais.", active: true },
+];
+
+function UnifiedHomeEditor() {
+  const [blocks, setBlocks] = useState<HomeEditorBlock[]>(initialHomeEditorBlocks);
+  const [selectedId, setSelectedId] = useState("hero");
+
+  function move(id: string, direction: -1 | 1) {
+    setBlocks((current) => {
+      const index = current.findIndex((block) => block.id === id);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= current.length) return current;
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next.map((block, position) => ({ ...block, number: String(position + 1).padStart(2, "0") }));
+    });
+  }
+
+  function addDivider() {
+    setBlocks((current) => [...current, { id: `divider-${Date.now()}`, number: String(current.length + 1).padStart(2, "0"), name: "Divisória", description: "Nova separação visual para organizar a hierarquia da Home.", active: true, divider: true }]);
+  }
+
+  return <div className="space-y-6">
+    <div className="flex flex-col gap-2 border-b border-border pb-6">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Site e Aparência</p>
+      <h2 className="text-3xl font-semibold tracking-tight">EDITOR DA HOME</h2>
+      <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">Organize a Home pública na mesma ordem em que o cliente visualiza cada bloco. Os editores internos serão definidos na próxima etapa.</p>
+    </div>
+    <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)] lg:items-start">
+      <section aria-labelledby="home-blocks-title" className="min-w-0 space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-4"><div><h3 id="home-blocks-title" className="text-xl font-semibold">Estrutura da Home</h3><p className="mt-1 text-sm text-muted-foreground">Cada bloco permanece na mesma tela e pode ser ativado ou reorganizado.</p></div><button type="button" onClick={addDivider} className="rounded-lg border border-primary px-3 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-primary-foreground">+ Adicionar divisória</button></div>
+        <div className="space-y-3">{blocks.map((block, index) => <article key={block.id} className={`min-w-0 rounded-xl border bg-card p-4 transition ${selectedId === block.id ? "border-primary shadow-sm" : "border-border"}`}>
+          <div className="flex min-w-0 items-start gap-3"><span className="shrink-0 font-mono text-sm font-semibold text-primary">{block.number}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h4 className="text-base font-semibold">{block.name}</h4>{block.divider && <span className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Estrutural</span>}</div><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{block.description}</p></div><button type="button" role="switch" aria-checked={block.active} aria-label={`${block.active ? "Desativar" : "Ativar"} ${block.name}`} onClick={() => setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, active: !item.active } : item))} className={`relative h-6 w-11 shrink-0 rounded-full border transition ${block.active ? "border-primary bg-primary" : "border-border bg-muted"}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-primary-foreground transition ${block.active ? "right-0.5" : "left-0.5"}`} /></button></div>
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3"><button type="button" onClick={() => setSelectedId(block.id)} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90">Editar</button><button type="button" disabled={index === 0} onClick={() => move(block.id, -1)} className="rounded-md border border-border px-3 py-1.5 text-xs disabled:opacity-40">Subir</button><button type="button" disabled={index === blocks.length - 1} onClick={() => move(block.id, 1)} className="rounded-md border border-border px-3 py-1.5 text-xs disabled:opacity-40">Descer</button><span className="ml-auto text-xs text-muted-foreground">{block.active ? "Ativo na prévia" : "Oculto na prévia"}</span></div>
+        </article>)}</div>
+      </section>
+      <aside className="min-w-0 lg:sticky lg:top-28" aria-labelledby="home-preview-title"><div className="overflow-hidden rounded-xl border border-border bg-card"><div className="border-b border-border p-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Prévia da Home</p><h3 id="home-preview-title" className="mt-1 text-xl font-semibold">PRÉVIA DA HOME</h3><p className="mt-1 text-sm text-muted-foreground">Ordem pública dos blocos ativos.</p></div><div className="max-h-[calc(100vh-15rem)] space-y-2 overflow-y-auto p-4">{blocks.filter((block) => block.active).map((block) => <div key={block.id} onClick={() => setSelectedId(block.id)} className={`cursor-pointer rounded-lg border p-3 transition ${selectedId === block.id ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/50"}`}><div className="flex items-center gap-2"><span className="font-mono text-[10px] text-primary">{block.number}</span><span className="text-sm font-medium">{block.name}</span></div>{block.divider ? <div className="mt-2 border-t border-border" /> : <p className="mt-1 text-xs text-muted-foreground">Conteúdo visível na Home pública</p>}</div>)}</div></div></aside>
+    </div>
+  </div>;
+}
 function UnifiedAppearanceEditor() { return <div className="space-y-8"><ThemeColorsEditor /><section className="border-t border-border pt-8"><StorePresentationEditor /></section></div>; }
 
 type HomeSection = { id: string; title: string; type: "Categoria" | "Destaques" | "Mais vendidos" | "Produtos" | "Personalizada"; active: boolean; sort_order: number; category_id?: string; product_ids?: string[]; product_sort?: "recent" | "price_desc" | "price_asc" }; 
