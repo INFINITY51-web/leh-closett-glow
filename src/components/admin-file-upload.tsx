@@ -46,6 +46,7 @@ export function AdminFileUpload({
 
   function validate(nextFile: File) {
     const extension = extensionOf(nextFile.name);
+    if (nextFile.size > 20 * 1024 * 1024) return "O arquivo deve ter no máximo 20 MB.";
     const isImage = imageExtensions.includes(extension) && imageTypes.includes(nextFile.type);
     const isVideo = videoExtensions.includes(extension) && videoTypes.includes(nextFile.type);
     const accepted = kind === "image" ? isImage : kind === "video" ? isVideo : isImage || isVideo;
