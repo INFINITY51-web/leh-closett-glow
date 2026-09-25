@@ -228,9 +228,8 @@ const defaultBannerStyle: BannerStyle = { font: "Montserrat", size: 50, titleCol
 const bannerFonts = ["Montserrat", "Playfair Display", "Syncopate", "Arial", "Georgia"];
 
 const initialHomeEditorBlocks: HomeEditorBlock[] = [
-  { id: "header", number: "01", name: "Cabeçalho / Navegação", description: "Identidade, navegação principal e acessos da loja.", active: true },
-  { id: "hero", number: "02", name: "Hero / Banners", description: "Imagem, vídeo, frase, título e configurações de transição do destaque.", active: true },
-  { id: "divider-1", number: "03", name: "Divisória", description: "Separação visual entre o destaque e os produtos em evidência.", active: true, divider: true },
+  { id: "hero", number: "01", name: "Hero / Banners", description: "Imagem, vídeo, frase, título e configurações de transição do destaque.", active: true },
+  { id: "divider-1", number: "02", name: "Divisória", description: "Separação visual entre o destaque e os produtos em evidência.", active: true, divider: true },
   { id: "featured", number: "04", name: "Produtos em destaque", description: "Produtos escolhidos para aparecer primeiro na vitrine.", active: true },
   { id: "divider-2", number: "05", name: "Divisória", description: "Separação visual entre destaques e promoções.", active: true, divider: true },
   { id: "promotions", number: "06", name: "Produtos em promoção", description: "Ofertas e produtos com preço promocional.", active: true },
@@ -241,7 +240,7 @@ const initialHomeEditorBlocks: HomeEditorBlock[] = [
   { id: "divider-5", number: "11", name: "Divisória", description: "Separação visual antes dos canais de atendimento.", active: true, divider: true },
   { id: "social", number: "12", name: "Redes sociais / Contato / Suporte", description: "Canais de contato, redes sociais e suporte ao cliente.", active: true },
   { id: "divider-6", number: "13", name: "Divisória", description: "Separação visual antes do encerramento da Home.", active: true, divider: true },
-  { id: "footer", number: "14", name: "Rodapé", description: "Informações finais, links institucionais e direitos autorais.", active: true },
+  { id: "footer", number: "13", name: "Rodapé", description: "Informações finais, links institucionais e direitos autorais.", active: true },
 ];
 
 function UnifiedHomeEditor() {
