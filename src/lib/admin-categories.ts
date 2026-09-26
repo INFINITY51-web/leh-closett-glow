@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { requireSupabase, supabase } from "./supabase";
 
 export type AdminCategory = {
   id: string;
@@ -12,7 +12,7 @@ export type AdminCategory = {
 };
 
 export async function listAdminCategories(): Promise<AdminCategory[]> {
-  if (!supabase) throw new Error("Supabase não configurado.");
+  const supabase = requireSupabase();
   const [{ data, error }, { data: products, error: productsError }] = await Promise.all([
     supabase.from("categories").select("id, name, slug, description, image_url, active, sort_order").order("sort_order").order("name"),
     supabase.from("products").select("category_id"),
@@ -25,7 +25,7 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
 }
 
 export async function saveAdminCategory(input: Omit<AdminCategory, "id"> & { id?: string }) {
-  if (!supabase) throw new Error("Supabase não configurado.");
+  const supabase = requireSupabase();
   const payload = { name: input.name, slug: input.slug, description: input.description || null, image_url: input.image_url || null, active: input.active, sort_order: input.sort_order };
   const result = input.id ? await supabase.from("categories").update(payload).eq("id", input.id) : await supabase.from("categories").insert(payload);
   if (result.error) throw result.error;

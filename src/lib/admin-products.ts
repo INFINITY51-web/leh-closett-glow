@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { requireSupabase, supabase } from "./supabase";
 
 export type AdminProduct = {
   id: string;
@@ -19,14 +19,14 @@ export type AdminProduct = {
 const select = "id, category_id, name, slug, description, price, compare_at_price, active, featured, published, video_url, product_variants(id, sku, size, color, price_override, stock_quantity, active), product_images(id, image_url, alt_text, sort_order, is_primary)";
 
 export async function listAdminProducts(): Promise<AdminProduct[]> {
-  if (!supabase) throw new Error("Supabase não configurado.");
+  const supabase = requireSupabase();
   const { data, error } = await supabase.from("products").select(select).order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as AdminProduct[];
 }
 
 export async function saveAdminProduct(input: { id?: string; name: string; slug: string; description: string; price: number; category_id: string | null; active: boolean; featured: boolean; published: boolean; video_url?: string | null; sizes: string[]; colors: string[]; sku: string; stock_quantity: number; images: string[]; primaryImage: number; variantStock?: Record<string, number> }) {
-  if (!supabase) throw new Error("Supabase não configurado.");
+  const supabase = requireSupabase();
   const payload = { name: input.name, slug: input.slug, description: input.description || null, price: input.price, category_id: input.category_id || null, active: input.active, featured: input.featured, published: input.published, video_url: input.video_url || null };
   const result = input.id ? await supabase.from("products").update(payload).eq("id", input.id).select("id").single() : await supabase.from("products").insert(payload).select("id").single();
   if (result.error) throw result.error;
