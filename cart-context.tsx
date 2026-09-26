@@ -7,16 +7,21 @@ type CartContextValue = { items: CartItem[]; totalItems: number; subtotal: numbe
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => { try { return JSON.parse(sessionStorage.getItem("leh-cart") || "[]"); } catch { return []; } });
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [storageReady, setStorageReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const previousUserId = useRef<string | null>(null);
+  useEffect(() => {
+    try { setItems(JSON.parse(sessionStorage.getItem("leh-cart") || "[]")); } catch { setItems([]); }
+    setStorageReady(true);
+  }, []);
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setUserId(session?.user?.id ?? null));
     return () => listener.subscription.unsubscribe();
   }, []);
-  useEffect(() => { sessionStorage.setItem("leh-cart", JSON.stringify(items)); }, [items]);
+  useEffect(() => { if (storageReady) sessionStorage.setItem("leh-cart", JSON.stringify(items)); }, [items, storageReady]);
   const syncSupabaseCart = async () => {
     if (!supabase) return null;
     // A tela de conferência pode ser aberta antes do efeito que carrega userId.

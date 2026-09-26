@@ -4,7 +4,16 @@ import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useSession } from "../lib/use-session";
 
-export const Route = createFileRoute("/login")({ component: LoginPage });
+export const Route = createFileRoute("/login")({
+  head: () => ({ meta: [
+    { title: "Entrar | LEH_CLOSETT GLOW" },
+    { name: "description", content: "Entre ou crie sua conta na LEH_CLOSETT GLOW." },
+    { property: "og:title", content: "Entrar | LEH_CLOSETT GLOW" },
+    { property: "og:description", content: "Acesse sua conta para acompanhar pedidos e finalizar compras." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
+  component: LoginPage,
+});
 
 type Mode = "login" | "signup";
 
@@ -77,7 +86,7 @@ function LoginPage() {
     setError(""); setSuccess("");
     if (!supabase || !identifier.includes("@")) { setError("Informe seu e-mail para recuperar a senha."); return; }
     setLoading(true);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(identifier.trim(), { redirectTo: `${window.location.origin}/conta` });
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(identifier.trim(), { redirectTo: `${window.location.origin}/reset-password` });
     setLoading(false);
     if (resetError) setError(resetError.message); else setSuccess("Enviamos as instruções para seu e-mail.");
   }

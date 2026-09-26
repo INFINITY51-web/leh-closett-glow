@@ -3,7 +3,16 @@ import { ArrowLeft, LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react"
 import { FormEvent, useState } from "react";
 import { signInAdmin } from "../lib/admin-auth";
 
-export const Route = createFileRoute("/admin/login")({ component: AdminLogin });
+export const Route = createFileRoute("/admin/login")({
+  head: () => ({ meta: [
+    { title: "Acesso administrativo | LEH_CLOSETT GLOW" },
+    { name: "description", content: "Acesso restrito à administração da LEH_CLOSETT GLOW." },
+    { property: "og:title", content: "Acesso administrativo | LEH_CLOSETT GLOW" },
+    { property: "og:description", content: "Área administrativa segura da loja." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
+  component: AdminLogin,
+});
 
 function AdminLogin() {
   const navigate = useNavigate();
