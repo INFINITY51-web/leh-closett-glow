@@ -4,13 +4,13 @@ export type AdminSession = { id: string; email: string };
 
 async function getAdminProfile(userId: string) {
   if (!supabase) return null;
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("role, is_active")
-    .eq("id", userId)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  const [roleResult, profileResult] = await Promise.all([
+    supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
+    supabase.from("profiles").select("role, is_active").eq("id", userId).maybeSingle(),
+  ]);
+  if (!roleResult.error) return { role: roleResult.data?.role ?? null, is_active: profileResult.data?.is_active ?? true };
+  if (profileResult.error) throw profileResult.error;
+  return profileResult.data;
 }
 
 export async function getAdminSession(): Promise<AdminSession | null> {

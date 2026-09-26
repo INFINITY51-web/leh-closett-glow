@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Store authorization roles only in `public.user_roles`; keeping roles out of editable profiles prevents privilege escalation.
+- Keep supplier API credentials in server secrets and call providers through authenticated server routes; this prevents browser exposure.
