@@ -29,6 +29,17 @@ export function getSupabaseConfigurationError() {
   return null;
 }
 
+export function describeSupabaseError(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object") return fallback;
+  const value = error as { message?: string; code?: string; details?: string; hint?: string; status?: number };
+  const parts = [value.message || fallback];
+  if (value.code) parts.push(`código: ${value.code}`);
+  if (value.details) parts.push(`detalhes: ${value.details}`);
+  if (value.hint) parts.push(`sugestão: ${value.hint}`);
+  if (value.status) parts.push(`HTTP: ${value.status}`);
+  return parts.join(" · ");
+}
+
 export function requireSupabase() {
   if (!supabase) throw new Error(getSupabaseConfigurationError() ?? "Supabase não configurado.");
   return supabase;
