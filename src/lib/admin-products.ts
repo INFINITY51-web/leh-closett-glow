@@ -39,7 +39,7 @@ export async function saveAdminProduct(input: { id?: string; name: string; slug:
   }
   const skuBase = (value: string) => value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toUpperCase();
   const variants = (input.sizes.length ? input.sizes : [null]).flatMap((size) => (input.colors.length ? input.colors : [null]).map((color) => {
-    const combination = [input.slug, color, size ?? "UNICA"].filter(Boolean).map(skuBase).join("-");
+    const combination = [input.slug, color, size ?? "UNICA"].filter(Boolean).map((v) => skuBase(String(v))).join("-");
     return { product_id: productId, sku: `${combination}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, size, color, stock_quantity: input.variantStock?.[`${color ?? ""}::${size}`] ?? input.stock_quantity, active: true };
   }));
   if (variants.length) { const { error } = await supabase.from("product_variants").insert(variants); if (error) throw error; }
