@@ -1,6 +1,8 @@
 import { supabase } from "./src/lib/supabase";
 export type Product = {
   id: string;
+  active?: boolean;
+  variantIds?: Record<string, string>;
   name: string;
   category: string;
   price: number;
