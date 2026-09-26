@@ -83,10 +83,16 @@ export function AdminFileUpload({
     setStatus("uploading"); setMessage("");
     const extension = extensionOf(file.name);
     const path = `${folder.replace(/^\/+|\/+$/g, "")}/${crypto.randomUUID()}.${extension}`;
-    const result = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type });
-    if (result.error) { const diagnostic = describeSupabaseError(result.error, "Falha no upload"); setStatus("error"); setMessage(diagnostic); onError?.(diagnostic); return; }
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    setStatus("success"); setMessage("Arquivo enviado com sucesso."); onUploaded({ path, url: data.publicUrl, file });
+    try {
+      const result = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type });
+      if (result.error) { const diagnostic = describeSupabaseError(result.error, "Falha no upload"); setStatus("error"); setMessage(diagnostic); onError?.(diagnostic); return; }
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      setStatus("success"); setMessage("Arquivo enviado com sucesso."); onUploaded({ path, url: data.publicUrl, file });
+    } catch (error) {
+      const diagnostic = describeSupabaseError(error, "Falha no upload");
+      setStatus("error"); setMessage(diagnostic); onError?.(diagnostic);
+    }
+    return;
   }
 
   function removeFile() {

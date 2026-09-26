@@ -1,4 +1,4 @@
-import { requireSupabase, supabase } from "./supabase";
+import { describeSupabaseError, requireSupabase, supabase } from "./supabase";
 
 export type AdminProduct = {
   id: string;
@@ -54,7 +54,7 @@ export async function uploadAdminProductVideo(productId: string, file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase() || "mp4";
   const path = `${productId}/video-${crypto.randomUUID()}.${extension}`;
   const upload = await supabase.storage.from("product-images").upload(path, file, { upsert: false, contentType: file.type });
-  if (upload.error) throw upload.error;
+  if (upload.error) throw new Error(describeSupabaseError(upload.error, "Falha no upload do vídeo"));
   const { data } = supabase.storage.from("product-images").getPublicUrl(path);
   const result = await supabase.from("products").update({ video_url: data.publicUrl }).eq("id", productId);
   if (result.error) { await supabase.storage.from("product-images").remove([path]); throw result.error; }
@@ -66,12 +66,12 @@ export async function uploadAdminProductImage(productId: string, file: File, alt
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${productId}/${crypto.randomUUID()}.${extension}`;
   const upload = await supabase.storage.from("product-images").upload(path, file, { upsert: false, contentType: file.type });
-  if (upload.error) throw upload.error;
+  if (upload.error) throw new Error(describeSupabaseError(upload.error, "Falha no upload da imagem do produto"));
   const { data: publicFile } = supabase.storage.from("product-images").getPublicUrl(path);
   const { data, error } = await supabase.from("product_images").insert({ product_id: productId, image_url: publicFile.publicUrl, alt_text: altText || null, sort_order: sortOrder, is_primary: isPrimary }).select("id, image_url, alt_text, sort_order, is_primary").single();
   if (error) {
     await supabase.storage.from("product-images").remove([path]);
-    throw error;
+    throw new Error(describeSupabaseError(error, "Falha ao registrar a imagem do produto"));
   }
   return data as AdminProduct["product_images"][number];
 }

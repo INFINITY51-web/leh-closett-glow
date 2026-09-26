@@ -1,4 +1,4 @@
-import { requireSupabase, supabase } from "./supabase";
+import { describeSupabaseError, requireSupabase, supabase } from "./supabase";
 
 export type AdminCategory = {
   id: string;
@@ -28,7 +28,7 @@ export async function saveAdminCategory(input: Omit<AdminCategory, "id"> & { id?
   const supabase = requireSupabase();
   const payload = { name: input.name, slug: input.slug, description: input.description || null, image_url: input.image_url || null, active: input.active, sort_order: input.sort_order };
   const result = input.id ? await supabase.from("categories").update(payload).eq("id", input.id) : await supabase.from("categories").insert(payload);
-  if (result.error) throw result.error;
+  if (result.error) throw new Error(describeSupabaseError(result.error, input.id ? "Falha ao atualizar a categoria" : "Falha ao criar a categoria"));
 }
 
 export async function removeAdminCategory(id: string) {
