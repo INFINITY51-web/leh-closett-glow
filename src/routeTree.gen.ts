@@ -19,6 +19,7 @@ import { Route as EnderecosRouteImport } from './routes/enderecos'
 import { Route as FavoritosRouteImport } from './routes/favoritos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PedidoConfirmadoRouteImport } from './routes/pedido-confirmado'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as CatalogoIndexRouteImport } from './routes/catalogo/index'
 import { Route as CatalogoIdRouteImport } from './routes/catalogo/$id'
@@ -73,6 +74,11 @@ const PedidoConfirmadoRoute = PedidoConfirmadoRouteImport.update({
   path: '/pedido-confirmado',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/catalogo/$id': typeof CatalogoIdRoute
   '/catalogo/': typeof CatalogoIndexRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/catalogo/$id': typeof CatalogoIdRoute
   '/catalogo': typeof CatalogoIndexRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/pedido-confirmado': typeof PedidoConfirmadoRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/catalogo/$id': typeof CatalogoIdRoute
   '/catalogo/': typeof CatalogoIndexRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/favoritos'
     | '/login'
     | '/pedido-confirmado'
+    | '/reset-password'
     | '/admin/login'
     | '/catalogo/$id'
     | '/catalogo/'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/favoritos'
     | '/login'
     | '/pedido-confirmado'
+    | '/reset-password'
     | '/admin/login'
     | '/catalogo/$id'
     | '/catalogo'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/favoritos'
     | '/login'
     | '/pedido-confirmado'
+    | '/reset-password'
     | '/admin/login'
     | '/catalogo/$id'
     | '/catalogo/'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   FavoritosRoute: typeof FavoritosRoute
   LoginRoute: typeof LoginRoute
   PedidoConfirmadoRoute: typeof PedidoConfirmadoRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   CatalogoIdRoute: typeof CatalogoIdRoute
   CatalogoIndexRoute: typeof CatalogoIndexRoute
 }
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PedidoConfirmadoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/login'
@@ -315,6 +335,7 @@ const rootRouteChildren: RootRouteChildren = {
   FavoritosRoute: FavoritosRoute,
   LoginRoute: LoginRoute,
   PedidoConfirmadoRoute: PedidoConfirmadoRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   CatalogoIdRoute: CatalogoIdRoute,
   CatalogoIndexRoute: CatalogoIndexRoute,
 }

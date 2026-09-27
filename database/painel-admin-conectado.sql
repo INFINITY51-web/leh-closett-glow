@@ -129,17 +129,68 @@ grant select, insert, update, delete on public.supplier_sync_runs to authenticat
 grant all on public.supplier_sync_runs to service_role;
 alter table public.supplier_sync_runs enable row level security;
 
+create table if not exists public.payments (
+  id uuid primary key default gen_random_uuid(), order_id uuid references public.orders(id) on delete cascade,
+  provider text not null default 'mercado_pago', provider_payment_id text, status text not null default 'pending',
+  amount numeric(12,2) not null default 0, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+grant select, insert, update, delete on public.payments to authenticated;
+grant all on public.payments to service_role;
+alter table public.payments enable row level security;
+
+create table if not exists public.shipments (
+  id uuid primary key default gen_random_uuid(), order_id uuid not null references public.orders(id) on delete cascade,
+  status text not null default 'pending', carrier text, tracking_code text, tracking_url text,
+  shipped_at timestamptz, delivered_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+grant select, insert, update, delete on public.shipments to authenticated;
+grant all on public.shipments to service_role;
+alter table public.shipments enable row level security;
+
+create table if not exists public.returns (
+  id uuid primary key default gen_random_uuid(), order_id uuid not null references public.orders(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade, reason text, status text not null default 'requested',
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+grant select, insert, update, delete on public.returns to authenticated;
+grant all on public.returns to service_role;
+alter table public.returns enable row level security;
+
+create table if not exists public.return_items (
+  id uuid primary key default gen_random_uuid(), return_id uuid not null references public.returns(id) on delete cascade,
+  order_item_id uuid references public.order_items(id) on delete set null, quantity integer not null default 1, condition text
+);
+grant select, insert, update, delete on public.return_items to authenticated;
+grant all on public.return_items to service_role;
+alter table public.return_items enable row level security;
+
+create table if not exists public.refunds (
+  id uuid primary key default gen_random_uuid(), order_id uuid references public.orders(id) on delete cascade,
+  return_id uuid references public.returns(id) on delete set null, amount numeric(12,2) not null default 0,
+  status text not null default 'pending', provider_refund_id text, created_at timestamptz not null default now()
+);
+grant select, insert, update, delete on public.refunds to authenticated;
+grant all on public.refunds to service_role;
+alter table public.refunds enable row level security;
+
 grant select on public.categories, public.products, public.product_variants, public.product_images to anon, authenticated;
 grant insert, update, delete on public.categories, public.products, public.product_variants, public.product_images to authenticated;
 grant all on public.categories, public.products, public.product_variants, public.product_images to service_role;
 
 do $$ declare t text; begin
-  foreach t in array array['categories','products','product_variants','product_images','banners','store_settings','suppliers','supplier_product_links','supplier_sync_runs'] loop
+  foreach t in array array['categories','products','product_variants','product_images','banners','store_settings','suppliers','supplier_product_links','supplier_sync_runs','payments','shipments','returns','return_items','refunds'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists leh_admin_manage on public.%I', t);
     execute format('create policy leh_admin_manage on public.%I for all to authenticated using (public.is_admin()) with check (public.is_admin())', t);
   end loop;
 end $$;
+
+drop policy if exists customer_read_own_payments on public.payments;
+create policy customer_read_own_payments on public.payments for select to authenticated using(exists(select 1 from public.orders o where o.id=order_id and o.user_id=auth.uid()));
+drop policy if exists customer_read_own_shipments on public.shipments;
+create policy customer_read_own_shipments on public.shipments for select to authenticated using(exists(select 1 from public.orders o where o.id=order_id and o.user_id=auth.uid()));
+drop policy if exists customer_manage_own_returns on public.returns;
+create policy customer_manage_own_returns on public.returns for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
 
 drop policy if exists leh_public_categories on public.categories;
 create policy leh_public_categories on public.categories for select to anon, authenticated using(active = true);
