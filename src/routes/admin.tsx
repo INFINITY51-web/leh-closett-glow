@@ -391,7 +391,7 @@ function StorePresentationEditor({ mode = "all" }: { mode?: "all" | "footer" | "
 
 function HomeImagesEditor() {
   type GalleryImage = { id: string; path?: string; url: string; label: string; source: string; createdAt?: string };
-  const bucket = "product-images";
+  const bucket = "store-media";
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -448,7 +448,7 @@ function HomeImagesEditor() {
 
 function HomeVideosEditor() {
   type VideoFile = { path: string; url: string; name: string; createdAt?: string; size?: number };
-  const bucket = "product-images";
+  const bucket = "store-media";
   const [videos, setVideos] = useState<VideoFile[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [message, setMessage] = useState("");
   async function load() { if (!supabase) { setError("Supabase não está configurado."); setLoading(false); return; } try { setLoading(true); const result = await supabase.storage.from(bucket).list("admin/videos", { limit: 100, sortBy: { column: "created_at", order: "desc" } }); if (result.error) throw result.error; setVideos((result.data ?? []).filter((item) => item.id).map((item) => { const path = `admin/videos/${item.name}`; return { path, name: item.name, createdAt: item.created_at ?? undefined, size: item.metadata?.size, url: supabase!.storage.from(bucket).getPublicUrl(path).data.publicUrl }; })); } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível carregar os vídeos."); } finally { setLoading(false); } }
   useEffect(() => { void load(); }, []);

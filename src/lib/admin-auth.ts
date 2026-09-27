@@ -4,13 +4,24 @@ export type AdminSession = { id: string; email: string };
 
 async function getAdminProfile(userId: string) {
   if (!supabase) return null;
-  const [roleResult, profileResult] = await Promise.all([
-    supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
-    supabase.from("profiles").select("role, is_active").eq("id", userId).maybeSingle(),
-  ]);
-  if (!roleResult.error) return { role: roleResult.data?.role ?? null, is_active: profileResult.data?.is_active ?? true };
-  if (profileResult.error) throw profileResult.error;
-  return profileResult.data;
+
+  // A autorização real continua sendo feita pelo Supabase/RLS. O painel não
+  // concede acesso por e-mail nem trata qualquer usuário autenticado como admin.
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("role, is_active")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    const message = error.message?.toLowerCase() ?? "";
+    if (error.code === "42501" || message.includes("permission denied")) {
+      throw new Error("O Supabase negou a validação administrativa. Revise a permissão EXECUTE da função is_admin() e as policies do perfil.");
+    }
+    throw error;
+  }
+
+  return data;
 }
 
 export async function getAdminSession(): Promise<AdminSession | null> {
