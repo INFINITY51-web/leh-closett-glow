@@ -16,7 +16,7 @@ async function getAdminProfile(userId: string) {
   if (error) {
     const message = error.message?.toLowerCase() ?? "";
     if (error.code === "42501" || message.includes("permission denied")) {
-      throw new Error("O Supabase negou a validação administrativa. Revise a permissão EXECUTE da função is_admin() e as policies do perfil.");
+      throw new Error("O banco ainda não aplicou a migration de permissões administrativas. Execute supabase/migrations/202603240001_fix_admin_is_admin_permissions.sql no Supabase e entre novamente.");
     }
     throw error;
   }
