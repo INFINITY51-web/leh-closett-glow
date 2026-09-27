@@ -15,17 +15,29 @@ export type AdminCustomer = {
 
 export async function listAdminCustomers(): Promise<AdminCustomer[]> {
   if (!supabase) throw new Error("Banco de dados não configurado.");
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, cpf, phone, is_active, created_at, addresses(*)");
-  if (error) throw error;
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    id: String(row.id), email: row.email == null ? null : String(row.email),
-    full_name: row.full_name == null ? null : String(row.full_name), cpf: row.cpf == null ? null : String(row.cpf),
-    phone: row.phone == null ? null : String(row.phone), is_active: Boolean(row.is_active),
-    created_at: String(row.created_at), addresses: Array.isArray(row.addresses) ? row.addresses as Array<Record<string, unknown>> : [],
-    order_count: Number(row.order_count ?? 0), total_spent: Number(row.total_spent ?? 0),
-  }));
+  const [profiles, orders] = await Promise.all([
+    supabase.from("profiles").select("id, full_name, cpf, phone, is_active, created_at, addresses(*)"),
+    supabase.from("orders").select("user_id, customer_email, total"),
+  ]);
+  if (profiles.error) throw profiles.error;
+  if (orders.error) throw orders.error;
+  const stats = new Map<string, { count: number; total: number; email: string | null }>();
+  (orders.data ?? []).forEach((order) => {
+    const key = String(order.user_id ?? order.customer_email ?? "");
+    if (!key) return;
+    const current = stats.get(key) ?? { count: 0, total: 0, email: null };
+    stats.set(key, { count: current.count + 1, total: current.total + Number(order.total ?? 0), email: current.email ?? (order.customer_email ? String(order.customer_email) : null) });
+  });
+  return (profiles.data ?? []).map((row: Record<string, unknown>) => {
+    const customerStats = stats.get(String(row.id)) ?? stats.get(String(row.email ?? "")) ?? { count: 0, total: 0 };
+    return {
+      id: String(row.id), email: customerStats.email,
+      full_name: row.full_name == null ? null : String(row.full_name), cpf: row.cpf == null ? null : String(row.cpf),
+      phone: row.phone == null ? null : String(row.phone), is_active: Boolean(row.is_active),
+      created_at: String(row.created_at), addresses: Array.isArray(row.addresses) ? row.addresses as Array<Record<string, unknown>> : [],
+      order_count: customerStats.count, total_spent: customerStats.total,
+    };
+  });
 }
 
 export type AdminOperationalData = {

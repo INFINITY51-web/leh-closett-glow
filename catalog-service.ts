@@ -52,14 +52,21 @@ export async function fetchPublishedProducts(): Promise<CatalogProduct[]> {
 
   const { data, error } = await supabase
     .from("products")
-    .select("id, category_id, name, slug, description, price, compare_at_price, active, featured, published, product_variants(id, sku, size, color, price_override, stock_quantity, active), product_images(id, image_url, alt_text, sort_order, is_primary)")
-    .eq("active", true)
-    .eq("published", true)
+    .select("id, category_id, name, slug, description, price, compare_at_price, status, featured, product_variants(id, sku, size, color, price_override, stock_quantity, is_active), product_images(id, image_url, alt_text, sort_order, is_primary)")
+    .eq("status", "published")
     .order("featured", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`Não foi possível carregar o catálogo: ${error.message}`);
-  return (data ?? []) as CatalogProduct[];
+  return (data ?? []).map((product) => ({
+    ...product,
+    active: product.status === "published",
+    published: product.status === "published",
+    product_variants: (product.product_variants ?? []).map((variant) => ({
+      ...variant,
+      active: variant.is_active,
+    })),
+  })) as CatalogProduct[];
 }
 
 export async function fetchMappedPublishedProducts(): Promise<Product[]> {
