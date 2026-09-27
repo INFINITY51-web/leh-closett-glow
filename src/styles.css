@@ -161,6 +161,21 @@
   background: var(--background);
   color: var(--foreground);
 }
+.admin-shell.admin-shell--dark {
+  --background: oklch(0.14 0.012 265);
+  --foreground: oklch(0.97 0.004 265);
+  --card: oklch(0.18 0.014 265);
+  --card-foreground: oklch(0.97 0.004 265);
+  --muted: oklch(0.22 0.012 265);
+  --muted-foreground: oklch(0.68 0.015 265);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(0.22 0.012 265);
+  --primary: oklch(0.78 0.19 165);
+  --primary-foreground: oklch(0.14 0.012 265);
+  --ring: oklch(0.78 0.19 165);
+  --admin-sidebar: oklch(0.11 0.012 265);
+  --admin-sidebar-muted: oklch(0.68 0.015 265);
+}
 .admin-shell aside {
   background: var(--admin-sidebar) !important;
   color: oklch(0.92 0.015 85);
@@ -172,7 +187,21 @@
 .admin-shell aside [class*="text-white"] { color: oklch(0.98 0.008 85) !important; }
 .admin-shell aside [class*="bg-slate-800"] { background: oklch(0.34 0.03 52) !important; }
 .admin-shell aside [class*="hover:bg-slate-900"]:hover { background: oklch(0.31 0.03 52) !important; }
+.admin-shell.admin-shell--dark aside [class*="bg-slate-800"] { background: oklch(0.22 0.012 265) !important; }
+.admin-shell.admin-shell--dark aside [class*="hover:bg-slate-900"]:hover { background: oklch(0.25 0.018 265) !important; }
 .admin-shell header { background: color-mix(in oklab, var(--card) 92%, transparent) !important; border-color: var(--border) !important; }
+.admin-shell.admin-shell--dark header [class*="border-slate"],
+.admin-shell.admin-shell--dark header input { border-color: var(--border) !important; }
+.admin-shell.admin-shell--dark header input { background: var(--input) !important; color: var(--foreground) !important; }
+.admin-shell.admin-shell--dark [class*="bg-white"] { background: var(--card) !important; }
+.admin-shell.admin-shell--dark [class*="bg-slate-50"] { background: var(--muted) !important; }
+.admin-shell.admin-shell--dark [class*="border-slate-200"],
+.admin-shell.admin-shell--dark [class*="border-slate-100"] { border-color: var(--border) !important; }
+.admin-shell.admin-shell--dark [class*="text-slate-950"],
+.admin-shell.admin-shell--dark [class*="text-slate-800"] { color: var(--foreground) !important; }
+.admin-shell.admin-shell--dark [class*="text-slate-600"],
+.admin-shell.admin-shell--dark [class*="text-slate-500"],
+.admin-shell.admin-shell--dark [class*="text-slate-400"] { color: var(--muted-foreground) !important; }
 .admin-shell main > div:first-child { border-color: var(--border) !important; }
 .admin-shell h1, .admin-shell h2, .admin-shell h3 { font-family: var(--font-display), serif; font-weight: 400; }
 .admin-shell h1 { letter-spacing: -0.025em; }
