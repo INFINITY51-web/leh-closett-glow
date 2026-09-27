@@ -17,7 +17,7 @@ export async function listAdminBanners(): Promise<Banner[]> {
   if (!supabase) throw new Error("Supabase não configurado.");
   const { data, error } = await supabase.from("banners").select(fields).order("sort_order").order("created_at", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as Banner[];
+  return (data ?? []).map((row) => ({ ...row, active: Boolean(row.is_active) })) as Banner[];
 }
 
 export async function saveAdminBanner(input: Omit<Banner, "id"> & { id?: string }) {
