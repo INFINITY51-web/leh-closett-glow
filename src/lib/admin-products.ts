@@ -14,9 +14,9 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
   if (error) throw error; return (data ?? []) as AdminProduct[];
 }
 
-export async function saveAdminProduct(input: { id?: string; name: string; slug: string; description: string; price: number; category_id: string | null; active: boolean; featured: boolean; published: boolean; video_url?: string | null; sizes: string[]; colors: string[]; sku: string; stock_quantity: number; images: string[]; primaryImage: number; variantStock?: Record<string, number> }) {
+export async function saveAdminProduct(input: { id?: string; name: string; slug: string; description: string; price: number; category_id: string | null; status?: string; active?: boolean; featured: boolean; published?: boolean; video_url?: string | null; sizes: string[]; colors: string[]; sku: string; stock_quantity: number; images: string[]; primaryImage: number; variantStock?: Record<string, number> }) {
   const client = requireSupabase();
-  const payload = { name: input.name, slug: input.slug, description: input.description || null, price: input.price, category_id: input.category_id || null, featured: input.featured, status: input.published ? "published" : "draft", video_url: input.video_url || null };
+  const payload = { name: input.name, slug: input.slug, description: input.description || null, price: input.price, category_id: input.category_id || null, featured: input.featured, status: input.status ?? (input.published ? "published" : "draft"), video_url: input.video_url || null };
   const result = input.id ? await client.from("products").update(payload).eq("id", input.id).select("id").single() : await client.from("products").insert(payload).select("id").single();
   if (result.error) throw result.error; const productId = result.data.id;
   if (input.id) { const removedVariants = await client.from("product_variants").delete().eq("product_id", productId); if (removedVariants.error) throw removedVariants.error; const removedImages = await client.from("product_images").delete().eq("product_id", productId); if (removedImages.error) throw removedImages.error; }

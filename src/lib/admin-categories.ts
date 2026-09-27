@@ -6,8 +6,8 @@ export type AdminCategory = {
   slug: string;
   description: string | null;
   image_url: string | null;
-  active: boolean;
-  is_active?: boolean;
+  is_active: boolean;
+  active?: boolean;
   sort_order: number;
   product_count?: number;
 };
@@ -22,12 +22,12 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
   if (productsError) throw productsError;
   const counts = new Map<string, number>();
   for (const product of products ?? []) if (product.category_id) counts.set(product.category_id, (counts.get(product.category_id) ?? 0) + 1);
-  return (data ?? []).map((category) => ({ ...category, active: category.is_active, product_count: counts.get(category.id) ?? 0 })) as AdminCategory[];
+  return (data ?? []).map((category) => ({ ...category, product_count: counts.get(category.id) ?? 0 })) as AdminCategory[];
 }
 
 export async function saveAdminCategory(input: Omit<AdminCategory, "id"> & { id?: string }) {
   const supabase = requireSupabase();
-  const payload = { name: input.name, slug: input.slug, description: input.description || null, image_url: input.image_url || null, is_active: input.active, sort_order: input.sort_order };
+  const payload = { name: input.name, slug: input.slug, description: input.description || null, image_url: input.image_url || null, is_active: input.is_active ?? input.active ?? false, sort_order: input.sort_order };
   const result = input.id ? await supabase.from("categories").update(payload).eq("id", input.id) : await supabase.from("categories").insert(payload);
   if (result.error) throw new Error(describeSupabaseError(result.error, input.id ? "Falha ao atualizar a categoria" : "Falha ao criar a categoria"));
 }

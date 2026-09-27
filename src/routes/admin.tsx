@@ -499,7 +499,7 @@ function ProductsArea({ area, onAreaChange }: { area: "Produtos" | "Categorias" 
 }
 
 function AdminProductsManager({ onCreateCategory }: { onCreateCategory: () => void }) {
-  const emptyForm = { name: "", slug: "", description: "", price: "", category_id: "", active: true, featured: false, published: true, sku: "", stock_quantity: "0", image: "", images: "", video: "", colors: "", sizes: "", variantStock: {} as Record<string, string> };
+  const emptyForm = { name: "", slug: "", description: "", price: "", category_id: "", status: "published", featured: false, sku: "", stock_quantity: "0", image: "", images: "", video: "", colors: "", sizes: "", variantStock: {} as Record<string, string> };
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [form, setForm] = useState(emptyForm);
