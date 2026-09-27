@@ -28,7 +28,7 @@ function extensionOf(name: string) {
 }
 
 export function AdminFileUpload({
-  bucket = "product-images",
+  bucket = "store-media",
   folder = "admin",
   kind = "all",
   onUploaded,
