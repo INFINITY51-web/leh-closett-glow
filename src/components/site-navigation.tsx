@@ -13,10 +13,11 @@ const navItems = [
 ];
 
 function Brand() {
+  const [logoUrl, setLogoUrl] = useState("");
+  useEffect(() => { void supabase?.from("store_settings").select("appearance").eq("id", "default").maybeSingle().then(({ data }) => { const appearance = data?.appearance && typeof data.appearance === "object" ? data.appearance as Record<string, unknown> : {}; const header = appearance.header && typeof appearance.header === "object" ? appearance.header as Record<string, unknown> : {}; setLogoUrl(typeof header.logoUrl === "string" ? header.logoUrl : ""); }); }, []);
   return (
     <Link to="/" className="flex min-w-0 flex-col items-center leading-none" aria-label="LEH_CLOSETT GLOW início">
-      <span className="whitespace-nowrap text-[8px] font-light uppercase tracking-[0.36em] text-foreground/65 min-[380px]:text-[9px]">LEH_CLOSETT</span>
-      <span className="mt-1 font-logo text-[15px] font-bold uppercase text-primary drop-shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_60%,transparent)] min-[380px]:text-lg">GLOW</span>
+      {logoUrl ? <img src={logoUrl} alt="LEH_CLOSETT GLOW" className="h-10 w-auto max-w-36 object-contain" /> : <><span className="whitespace-nowrap text-[8px] font-light uppercase tracking-[0.36em] text-foreground/65 min-[380px]:text-[9px]">LEH_CLOSETT</span><span className="mt-1 font-logo text-[15px] font-bold uppercase text-primary drop-shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_60%,transparent)] min-[380px]:text-lg">GLOW</span></>}
     </Link>
   );
 }
