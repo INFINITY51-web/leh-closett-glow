@@ -15,7 +15,9 @@ export type AdminCustomer = {
 
 export async function listAdminCustomers(): Promise<AdminCustomer[]> {
   if (!supabase) throw new Error("Banco de dados não configurado.");
-  const { data, error } = await supabase.rpc("admin_list_customers");
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, cpf, phone, is_active, created_at, addresses(*)");
   if (error) throw error;
   return (data ?? []).map((row: Record<string, unknown>) => ({
     id: String(row.id), email: row.email == null ? null : String(row.email),

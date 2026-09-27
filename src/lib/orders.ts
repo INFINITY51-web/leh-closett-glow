@@ -94,7 +94,7 @@ export async function getOrderById(id: string) {
 
 export async function listAdminOrders() {
   if (!supabase) throw new Error("Supabase não configurado");
-  const { data, error } = await supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("orders").select("*, order_items(*), shipments(*)").order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
