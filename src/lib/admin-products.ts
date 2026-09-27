@@ -7,19 +7,12 @@ export type AdminProduct = {
   product_images: Array<{ id: string; image_url: string; alt_text: string | null; sort_order: number; is_primary: boolean }>;
 };
 
-// A tabela real não possui product_variants.size. O campo é mantido apenas
-// como compatibilidade de leitura para a interface, sempre com valor nulo.
-// product_variants não possui size nem color no schema atual. Os dois campos são
-// preenchidos como null abaixo apenas para manter a compatibilidade da interface.
-const select = "id, category_id, name, slug, description, price, compare_at_price, status, featured, video_url, product_variants(id, sku, price_override, stock_quantity, is_active), product_images(id, image_url, alt_text, sort_order, is_primary)";
+const select = "id, category_id, name, slug, description, price, compare_at_price, status, featured, video_url, product_variants(id, sku, size, color, price_override, stock_quantity, is_active), product_images(id, image_url, alt_text, sort_order, is_primary)";
 
 export async function listAdminProducts(): Promise<AdminProduct[]> {
   const { data, error } = await requireSupabase().from("products").select(select).order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((product) => ({
-    ...product,
-    product_variants: (product.product_variants ?? []).map((variant) => ({ ...variant, size: null, color: null })),
-  })) as AdminProduct[];
+  return (data ?? []) as AdminProduct[];
 }
 
 export async function saveAdminProduct(input: { id?: string; name: string; slug: string; description: string; price: number; category_id: string | null; status?: string; active?: boolean; featured: boolean; published?: boolean; video_url?: string | null; sizes: string[]; colors: string[]; sku: string; stock_quantity: number; images: string[]; primaryImage: number; variantStock?: Record<string, number> }) {
@@ -29,7 +22,7 @@ export async function saveAdminProduct(input: { id?: string; name: string; slug:
   if (result.error) throw result.error; const productId = result.data.id;
   if (input.id) { const removedVariants = await client.from("product_variants").delete().eq("product_id", productId); if (removedVariants.error) throw removedVariants.error; const removedImages = await client.from("product_images").delete().eq("product_id", productId); if (removedImages.error) throw removedImages.error; }
   const skuBase = (value: string) => value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toUpperCase();
-  const variants = (input.sizes.length ? input.sizes : [null]).flatMap((size) => (input.colors.length ? input.colors : [null]).map((color) => ({ product_id: productId, sku: `${[input.slug, color, size ?? "UNICA"].filter(Boolean).map((v) => skuBase(String(v))).join("-")}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, stock_quantity: input.variantStock?.[`${color ?? ""}::${size}`] ?? input.stock_quantity, is_active: true })));
+  const variants = (input.sizes.length ? input.sizes : [null]).flatMap((size) => (input.colors.length ? input.colors : [null]).map((color) => ({ product_id: productId, sku: `${[input.slug, color, size ?? "UNICA"].filter(Boolean).map((v) => skuBase(String(v))).join("-")}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, size, color, stock_quantity: input.variantStock?.[`${color ?? ""}::${size}`] ?? input.stock_quantity, is_active: true, price_override: null })));
   if (variants.length) { const { error } = await client.from("product_variants").insert(variants); if (error) throw error; }
   const images = input.images.filter(Boolean).map((image_url, index) => ({ product_id: productId, image_url, alt_text: input.name, sort_order: index, is_primary: index === input.primaryImage }));
   if (images.length) { const { error } = await client.from("product_images").insert(images); if (error) throw error; }

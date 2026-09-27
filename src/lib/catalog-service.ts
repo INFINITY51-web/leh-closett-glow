@@ -37,7 +37,7 @@ export async function fetchPublishedProducts(): Promise<CatalogProduct[]> {
 
   const { data, error } = await supabase
     .from("products")
-    .select("id, category_id, name, slug, description, price, compare_at_price, status, featured, product_variants(id, sku, price_override, stock_quantity, is_active), product_images(id, image_url, alt_text, sort_order, is_primary)")
+    .select("id, category_id, name, slug, description, price, compare_at_price, status, featured, product_variants(id, sku, size, color, price_override, stock_quantity, is_active), product_images(id, image_url, alt_text, sort_order, is_primary)")
     .eq("status", "published")
     .order("featured", { ascending: false })
     .order("created_at", { ascending: false });
@@ -49,8 +49,6 @@ export async function fetchPublishedProducts(): Promise<CatalogProduct[]> {
     published: product.status === "published",
     product_variants: (product.product_variants ?? []).map((variant) => ({
       ...variant,
-      size: null,
-      color: null,
       active: variant.is_active,
     })),
   })) as CatalogProduct[];
