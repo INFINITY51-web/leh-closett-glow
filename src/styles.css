@@ -70,7 +70,7 @@
 
 :root {
   --radius: 0.5rem;
-  --background: oklch(0.07 0.008 300);
+  --background: oklch(0.7 0.3 145);
   --foreground: oklch(0.96 0.008 320);
   --card: oklch(0.105 0.012 300);
   --card-foreground: oklch(0.96 0.008 320);
