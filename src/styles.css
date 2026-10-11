@@ -16,6 +16,7 @@
  * To add a new semantic color:
  * 1. Add the variable to :root (light value) and .dark (dark value)
  * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * 3. Add the new color to the list of colors in the @theme inline block
  */
 
 @theme inline {
@@ -320,4 +321,9 @@
       min-height: 2.5rem;
     }
   }
+}
+
+/* Adicionando a classe CSS para a cor de fundo verde */
+.home-background {
+  background-color: #4CAF50; /* Cor verde */
 }
