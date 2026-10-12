@@ -66,7 +66,7 @@ function Index() {
   const heroImage = activeBanner?.image_url || null;
 
   return (
-    <div className="min-h-screen overflow-hidden bg-white pb-16 text-foreground md:pb-0">
+    <div className="min-h-screen overflow-hidden bg-background pb-16 text-foreground md:pb-0">
       <SiteNavigation />
       <main id="inicio">
         <section className="relative min-h-[calc(100svh-1rem)] overflow-hidden border-b border-border bg-card pt-18 md:min-h-[min(920px,100vh)] md:pt-20">
